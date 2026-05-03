@@ -8,7 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { COUNTRIES, ETHNICITIES, GENDERS, ORIENTATIONS, INTERESTED_IN, AGE_GROUPS, CONDITIONS, INTERESTS } from "@/lib/constants";
+import {
+  COUNTRIES, ETHNICITIES, GENDERS, ORIENTATIONS, INTERESTED_IN, AGE_GROUPS,
+  CONDITIONS, INTERESTS, RELIGIONS, RELATIONSHIP_GOALS, SMOKING_OPTS, DRINKING_OPTS,
+  CHILDREN_OPTS, EDUCATION_OPTS, FINANCIAL_OPTS, LANGUAGES,
+} from "@/lib/constants";
 import { Camera, Loader2, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -18,23 +22,41 @@ const Onboarding = () => {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [p, setP] = useState<any>({
-    display_name: "", bio: "", age: 25, gender: "", orientation: "", interested_in: "",
+    display_name: "", bio: "", age: "25", gender: "", orientation: "", interested_in: "",
     country: "", city: "", ethnicity: "", age_group: "adult",
-    conditions: [], interests: [], photos: [],
+    religion: "", relationship_goals: "", smoking: "", drinking: "", has_children: "",
+    education: "", financial_status: "", height_cm: "",
+    languages: [], conditions: [], interests: [], photos: [],
+    preferred_age_min: 18, preferred_age_max: 99,
+    preferred_genders: [], preferred_ethnicities: [], preferred_religions: [],
+    preferred_countries: [], preferred_relationship_goals: [],
   });
 
   useEffect(() => {
     if (!loading && !user) nav("/auth");
     if (user) {
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => {
-        if (data) setP({ ...p, ...data, conditions: data.conditions || [], interests: data.interests || [], photos: data.photos || [] });
+        if (data) setP((prev: any) => ({
+          ...prev, ...data,
+          age: data.age ? String(data.age) : prev.age,
+          height_cm: data.height_cm ? String(data.height_cm) : "",
+          languages: data.languages || [], conditions: data.conditions || [],
+          interests: data.interests || [], photos: data.photos || [],
+          preferred_genders: data.preferred_genders || [],
+          preferred_ethnicities: data.preferred_ethnicities || [],
+          preferred_religions: data.preferred_religions || [],
+          preferred_countries: data.preferred_countries || [],
+          preferred_relationship_goals: data.preferred_relationship_goals || [],
+          preferred_age_min: data.preferred_age_min ?? 18,
+          preferred_age_max: data.preferred_age_max ?? 99,
+        }));
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 
-  function toggle(field: "conditions" | "interests", v: string) {
-    setP({ ...p, [field]: p[field].includes(v) ? p[field].filter((x: string) => x !== v) : [...p[field], v] });
+  function toggle(field: string, v: string) {
+    setP((cur: any) => ({ ...cur, [field]: cur[field].includes(v) ? cur[field].filter((x: string) => x !== v) : [...cur[field], v] }));
   }
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -54,15 +76,27 @@ const Onboarding = () => {
 
   async function save() {
     if (!user) return;
+    const ageNum = parseInt(p.age, 10);
     if (!p.display_name || !p.gender || !p.orientation || !p.country || p.photos.length === 0) {
       toast.error("Please add a name, photo, gender, orientation and country."); return;
     }
+    if (!ageNum || ageNum < 18 || ageNum > 120) {
+      toast.error("Age must be between 18 and 120."); return;
+    }
     setBusy(true);
     const { error } = await supabase.from("profiles").update({
-      display_name: p.display_name, bio: p.bio, age: Number(p.age),
+      display_name: p.display_name, bio: p.bio, age: ageNum,
       gender: p.gender, orientation: p.orientation, interested_in: p.interested_in,
       country: p.country, city: p.city, ethnicity: p.ethnicity, age_group: p.age_group,
-      conditions: p.conditions, interests: p.interests, photos: p.photos,
+      religion: p.religion || null, relationship_goals: p.relationship_goals || null,
+      smoking: p.smoking || null, drinking: p.drinking || null, has_children: p.has_children || null,
+      education: p.education || null, financial_status: p.financial_status || null,
+      height_cm: p.height_cm ? parseInt(p.height_cm, 10) : null,
+      languages: p.languages, conditions: p.conditions, interests: p.interests, photos: p.photos,
+      preferred_age_min: p.preferred_age_min, preferred_age_max: p.preferred_age_max,
+      preferred_genders: p.preferred_genders, preferred_ethnicities: p.preferred_ethnicities,
+      preferred_religions: p.preferred_religions, preferred_countries: p.preferred_countries,
+      preferred_relationship_goals: p.preferred_relationship_goals,
     }).eq("id", user.id);
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -72,7 +106,7 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen gradient-soft px-4 py-8">
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6 pb-24">
         <div>
           <h1 className="text-3xl font-bold">Set up your profile</h1>
           <p className="text-muted-foreground">A great profile = better matches.</p>
@@ -102,7 +136,7 @@ const Onboarding = () => {
         <Section title="Basics">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Display name"><Input value={p.display_name} onChange={e => setP({ ...p, display_name: e.target.value })} /></Field>
-            <Field label="Age"><Input type="number" min={18} max={120} value={p.age} onChange={e => setP({ ...p, age: e.target.value })} /></Field>
+            <Field label="Age (18+)"><Input type="number" inputMode="numeric" min={18} max={120} value={p.age} onChange={e => setP({ ...p, age: e.target.value })} /></Field>
             <Field label="Gender"><Picker value={p.gender} onChange={v => setP({ ...p, gender: v })} options={GENDERS} /></Field>
             <Field label="Orientation"><Picker value={p.orientation} onChange={v => setP({ ...p, orientation: v })} options={ORIENTATIONS} /></Field>
             <Field label="Interested in"><Picker value={p.interested_in} onChange={v => setP({ ...p, interested_in: v })} options={INTERESTED_IN} /></Field>
@@ -115,7 +149,24 @@ const Onboarding = () => {
             </Field>
             <Field label="City"><Input value={p.city} onChange={e => setP({ ...p, city: e.target.value })} /></Field>
             <Field label="Ethnicity"><Picker value={p.ethnicity} onChange={v => setP({ ...p, ethnicity: v })} options={ETHNICITIES} /></Field>
+            <Field label="Religion"><Picker value={p.religion} onChange={v => setP({ ...p, religion: v })} options={RELIGIONS} /></Field>
+            <Field label="Height (cm)"><Input type="number" value={p.height_cm} onChange={e => setP({ ...p, height_cm: e.target.value })} /></Field>
           </div>
+        </Section>
+
+        <Section title="Lifestyle">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Looking for"><Picker value={p.relationship_goals} onChange={v => setP({ ...p, relationship_goals: v })} options={RELATIONSHIP_GOALS} /></Field>
+            <Field label="Smoking"><Picker value={p.smoking} onChange={v => setP({ ...p, smoking: v })} options={SMOKING_OPTS} /></Field>
+            <Field label="Drinking"><Picker value={p.drinking} onChange={v => setP({ ...p, drinking: v })} options={DRINKING_OPTS} /></Field>
+            <Field label="Children"><Picker value={p.has_children} onChange={v => setP({ ...p, has_children: v })} options={CHILDREN_OPTS} /></Field>
+            <Field label="Education"><Picker value={p.education} onChange={v => setP({ ...p, education: v })} options={EDUCATION_OPTS} /></Field>
+            <Field label="Financial status (premium filter)"><Picker value={p.financial_status} onChange={v => setP({ ...p, financial_status: v })} options={FINANCIAL_OPTS} /></Field>
+          </div>
+        </Section>
+
+        <Section title="Languages">
+          <ChipGroup options={LANGUAGES} selected={p.languages} onToggle={v => toggle("languages", v)} />
         </Section>
 
         <Section title="About you">
@@ -129,6 +180,20 @@ const Onboarding = () => {
         <Section title="Living with (optional)">
           <p className="-mt-2 mb-3 text-xs text-muted-foreground">Help find people who relate. Always optional.</p>
           <ChipGroup options={CONDITIONS} selected={p.conditions} onToggle={v => toggle("conditions", v)} />
+        </Section>
+
+        <Section title="What you're looking for">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Min age"><Input type="number" min={18} max={120} value={p.preferred_age_min} onChange={e => setP({ ...p, preferred_age_min: parseInt(e.target.value) || 18 })} /></Field>
+            <Field label="Max age"><Input type="number" min={18} max={120} value={p.preferred_age_max} onChange={e => setP({ ...p, preferred_age_max: parseInt(e.target.value) || 99 })} /></Field>
+          </div>
+          <div className="mt-3 space-y-3">
+            <div><Label className="mb-1 block">Preferred genders</Label><ChipGroup options={GENDERS} selected={p.preferred_genders} onToggle={v => toggle("preferred_genders", v)} /></div>
+            <div><Label className="mb-1 block">Preferred religions</Label><ChipGroup options={RELIGIONS} selected={p.preferred_religions} onToggle={v => toggle("preferred_religions", v)} /></div>
+            <div><Label className="mb-1 block">Preferred ethnicities</Label><ChipGroup options={ETHNICITIES} selected={p.preferred_ethnicities} onToggle={v => toggle("preferred_ethnicities", v)} /></div>
+            <div><Label className="mb-1 block">Preferred countries</Label><ChipGroup options={COUNTRIES.map(c => c.name)} selected={p.preferred_countries} onToggle={v => toggle("preferred_countries", v)} /></div>
+            <div><Label className="mb-1 block">Relationship goals</Label><ChipGroup options={RELATIONSHIP_GOALS} selected={p.preferred_relationship_goals} onToggle={v => toggle("preferred_relationship_goals", v)} /></div>
+          </div>
         </Section>
 
         <Button onClick={save} disabled={busy} size="lg" className="w-full gradient-primary text-primary-foreground shadow-glow">
