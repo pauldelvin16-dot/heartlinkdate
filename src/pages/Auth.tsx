@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { COUNTRIES } from "@/lib/constants";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { toast } from "sonner";
-import { Heart } from "lucide-react";
+import { Heart, Mail } from "lucide-react";
 
-const SUPPORTED_DIALS = ["+44","+353","+33","+49","+34","+39","+31","+46","+47","+45","+358","+32","+43","+351","+48","+1","+61"];
+const SUPPORTED_DIALS = COUNTRIES.map(c => c.dial);
 
 const signupSchema = z.object({
   email: z.string().trim().email().max(255),
@@ -30,8 +30,10 @@ const Auth = () => {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const s = useSiteSettings();
-  const [mode, setMode] = useState<"login" | "signup">(params.get("mode") === "signup" ? "signup" : "login");
+  const [mode, setMode] = useState<"login" | "signup" | "otp">(params.get("mode") === "signup" ? "signup" : "login");
   const [busy, setBusy] = useState(false);
+  const [otpStage, setOtpStage] = useState<"send" | "verify">("send");
+  const [otpCode, setOtpCode] = useState("");
   const [form, setForm] = useState({ email: "", password: "", displayName: "", dial: "+44", phone: "" });
 
   useEffect(() => {
@@ -55,17 +57,33 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        // store phone on profile after signup
         const { data: u } = await supabase.auth.getUser();
         if (u.user) await supabase.from("profiles").update({ phone: phoneFull }).eq("id", u.user.id);
+        // Send branded welcome email via SMTP if configured (best-effort)
+        supabase.functions.invoke("welcome-email", { body: { to: form.email, name: form.displayName } }).catch(() => {});
         toast.success("Account created! Let's set up your profile.");
         nav("/onboarding");
-      } else {
+      } else if (mode === "login") {
         const parsed = loginSchema.safeParse(form);
         if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
         const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
         if (error) throw error;
         nav("/discover");
+      } else if (mode === "otp") {
+        if (otpStage === "send") {
+          if (!form.email) return toast.error("Enter your email");
+          const { error } = await supabase.functions.invoke("send-otp", { body: { email: form.email, purpose: "login" } });
+          if (error) throw error;
+          setOtpStage("verify");
+          toast.success("Code sent. Check your inbox.");
+        } else {
+          const { data, error } = await supabase.functions.invoke("verify-otp", { body: { email: form.email, code: otpCode } });
+          if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+          // Use Supabase magic link sign-in to actually create a session after OTP confirms identity.
+          const { error: e2 } = await supabase.auth.signInWithOtp({ email: form.email, options: { emailRedirectTo: `${window.location.origin}/discover` } });
+          if (e2) throw e2;
+          toast.success("Verified! Check your inbox for a sign-in link.");
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
@@ -84,9 +102,11 @@ const Auth = () => {
           <span className="font-display text-2xl font-bold">{s?.site_name ?? "HeartLink"}</span>
         </Link>
         <div className="rounded-3xl border border-border bg-card p-6 shadow-card sm:p-8">
-          <h1 className="mb-1 text-2xl font-bold">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
+          <h1 className="mb-1 text-2xl font-bold">
+            {mode === "signup" ? "Create account" : mode === "otp" ? "Sign in with code" : "Welcome back"}
+          </h1>
           <p className="mb-6 text-sm text-muted-foreground">
-            {mode === "signup" ? "Available in UK, Europe, USA & Australia." : "Sign in to keep finding your spark."}
+            {mode === "signup" ? "Available in UK, Europe, USA & Australia." : mode === "otp" ? "We'll email you a one-time code." : "Sign in to keep finding your spark."}
           </p>
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
@@ -99,10 +119,18 @@ const Auth = () => {
               <Label htmlFor="em">Email</Label>
               <Input id="em" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
             </div>
-            <div>
-              <Label htmlFor="pw">Password</Label>
-              <Input id="pw" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={mode === "signup" ? 8 : 1} />
-            </div>
+            {mode !== "otp" && (
+              <div>
+                <Label htmlFor="pw">Password</Label>
+                <Input id="pw" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={mode === "signup" ? 8 : 1} />
+              </div>
+            )}
+            {mode === "otp" && otpStage === "verify" && (
+              <div>
+                <Label>6-digit code</Label>
+                <Input inputMode="numeric" maxLength={6} value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))} required />
+              </div>
+            )}
             {mode === "signup" && (
               <div>
                 <Label>Phone (UK, EU, USA, AU only)</Label>
@@ -118,12 +146,20 @@ const Auth = () => {
               </div>
             )}
             <Button type="submit" disabled={busy} className="w-full gradient-primary text-primary-foreground shadow-glow">
-              {busy ? "…" : (mode === "signup" ? "Create account" : "Sign in")}
+              {busy ? "…" : mode === "signup" ? "Create account" : mode === "otp" ? (otpStage === "send" ? "Send code" : "Verify code") : "Sign in"}
             </Button>
           </form>
-          <button onClick={() => setMode(mode === "signup" ? "login" : "signup")} className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground">
-            {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
-          </button>
+          <div className="mt-4 space-y-2 text-center text-sm">
+            {mode === "login" && (
+              <>
+                <Link to="/forgot-password" className="block text-muted-foreground hover:text-foreground">Forgot password?</Link>
+                <button onClick={() => { setMode("otp"); setOtpStage("send"); }} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"><Mail className="h-3.5 w-3.5" /> Sign in with email code</button>
+              </>
+            )}
+            <button onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setOtpStage("send"); }} className="block w-full text-muted-foreground hover:text-foreground">
+              {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

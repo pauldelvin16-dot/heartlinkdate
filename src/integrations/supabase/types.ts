@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_templates: {
+        Row: {
+          html: string
+          id: string
+          is_active: boolean
+          key: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          html: string
+          id?: string
+          is_active?: boolean
+          key: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          html?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string
@@ -50,6 +77,63 @@ export type Database = {
           },
         ]
       }
+      otp_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          purpose: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          purpose?: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          purpose?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      password_reset_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       premium_contacts: {
         Row: {
           created_at: string
@@ -57,6 +141,7 @@ export type Database = {
           id: string
           is_active: boolean
           label: string
+          moderator_user_id: string | null
           notes: string | null
           phone: string | null
           whatsapp: string | null
@@ -67,6 +152,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           label: string
+          moderator_user_id?: string | null
           notes?: string | null
           phone?: string | null
           whatsapp?: string | null
@@ -77,9 +163,43 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string
+          moderator_user_id?: string | null
           notes?: string | null
           phone?: string | null
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      premium_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          notes: string | null
+          plan: string
+          starts_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          plan?: string
+          starts_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          plan?: string
+          starts_at?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -93,16 +213,34 @@ export type Database = {
           country: string | null
           created_at: string
           display_name: string
+          drinking: string | null
+          education: string | null
           ethnicity: string | null
+          financial_status: string | null
           gender: string | null
+          has_children: string | null
+          height_cm: number | null
           id: string
           interested_in: string | null
           interests: string[] | null
           is_active: boolean
+          is_premium: boolean
           is_simulated: boolean
+          languages: string[] | null
           orientation: string | null
           phone: string | null
           photos: string[] | null
+          preferred_age_max: number | null
+          preferred_age_min: number | null
+          preferred_countries: string[] | null
+          preferred_ethnicities: string[] | null
+          preferred_genders: string[] | null
+          preferred_orientations: string[] | null
+          preferred_relationship_goals: string[] | null
+          preferred_religions: string[] | null
+          relationship_goals: string | null
+          religion: string | null
+          smoking: string | null
           updated_at: string
         }
         Insert: {
@@ -114,16 +252,34 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name: string
+          drinking?: string | null
+          education?: string | null
           ethnicity?: string | null
+          financial_status?: string | null
           gender?: string | null
+          has_children?: string | null
+          height_cm?: number | null
           id: string
           interested_in?: string | null
           interests?: string[] | null
           is_active?: boolean
+          is_premium?: boolean
           is_simulated?: boolean
+          languages?: string[] | null
           orientation?: string | null
           phone?: string | null
           photos?: string[] | null
+          preferred_age_max?: number | null
+          preferred_age_min?: number | null
+          preferred_countries?: string[] | null
+          preferred_ethnicities?: string[] | null
+          preferred_genders?: string[] | null
+          preferred_orientations?: string[] | null
+          preferred_relationship_goals?: string[] | null
+          preferred_religions?: string[] | null
+          relationship_goals?: string | null
+          religion?: string | null
+          smoking?: string | null
           updated_at?: string
         }
         Update: {
@@ -135,16 +291,34 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string
+          drinking?: string | null
+          education?: string | null
           ethnicity?: string | null
+          financial_status?: string | null
           gender?: string | null
+          has_children?: string | null
+          height_cm?: number | null
           id?: string
           interested_in?: string | null
           interests?: string[] | null
           is_active?: boolean
+          is_premium?: boolean
           is_simulated?: boolean
+          languages?: string[] | null
           orientation?: string | null
           phone?: string | null
           photos?: string[] | null
+          preferred_age_max?: number | null
+          preferred_age_min?: number | null
+          preferred_countries?: string[] | null
+          preferred_ethnicities?: string[] | null
+          preferred_genders?: string[] | null
+          preferred_orientations?: string[] | null
+          preferred_relationship_goals?: string[] | null
+          preferred_religions?: string[] | null
+          relationship_goals?: string | null
+          religion?: string | null
+          smoking?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -154,6 +328,8 @@ export type Database = {
           allowed_country_codes: string[]
           contact_email: string | null
           contact_whatsapp: string | null
+          enable_2fa_email: boolean
+          enable_otp_login: boolean
           id: number
           logo_url: string | null
           premium_message: string | null
@@ -166,6 +342,8 @@ export type Database = {
           allowed_country_codes?: string[]
           contact_email?: string | null
           contact_whatsapp?: string | null
+          enable_2fa_email?: boolean
+          enable_otp_login?: boolean
           id?: number
           logo_url?: string | null
           premium_message?: string | null
@@ -178,6 +356,8 @@ export type Database = {
           allowed_country_codes?: string[]
           contact_email?: string | null
           contact_whatsapp?: string | null
+          enable_2fa_email?: boolean
+          enable_otp_login?: boolean
           id?: number
           logo_url?: string | null
           premium_message?: string | null
@@ -185,6 +365,48 @@ export type Database = {
           site_name?: string
           tagline?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      smtp_settings: {
+        Row: {
+          from_email: string | null
+          from_name: string | null
+          host: string | null
+          id: number
+          is_active: boolean
+          password: string | null
+          port: number | null
+          reply_to: string | null
+          secure: boolean | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          from_email?: string | null
+          from_name?: string | null
+          host?: string | null
+          id?: number
+          is_active?: boolean
+          password?: string | null
+          port?: number | null
+          reply_to?: string | null
+          secure?: boolean | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          from_email?: string | null
+          from_name?: string | null
+          host?: string | null
+          id?: number
+          is_active?: boolean
+          password?: string | null
+          port?: number | null
+          reply_to?: string | null
+          secure?: boolean | null
+          updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -253,9 +475,28 @@ export type Database = {
         }
         Returns: boolean
       }
+      recommend_profiles: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: {
+          age: number
+          bio: string
+          city: string
+          conditions: string[]
+          country: string
+          display_name: string
+          ethnicity: string
+          gender: string
+          id: string
+          interests: string[]
+          orientation: string
+          photos: string[]
+          religion: string
+          score: number
+        }[]
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -383,7 +624,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "moderator"],
     },
   },
 } as const
