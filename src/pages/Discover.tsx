@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { Heart, X, MapPin, Sparkles } from "lucide-react";
+import { Heart, X, MapPin, Sparkles, Crown, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { COUNTRIES, FINANCIAL_OPTS, FREE_DAILY_SWIPES } from "@/lib/constants";
 
 interface Profile {
   id: string;
@@ -20,6 +23,23 @@ interface Profile {
   conditions: string[] | null;
   orientation: string | null;
   gender: string | null;
+  religion?: string | null;
+  financial_status?: string | null;
+  is_simulated?: boolean;
+}
+
+const SWIPE_KEY = "hl_swipes_today";
+
+function getTodaySwipes() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SWIPE_KEY) || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    return raw.date === today ? raw.count : 0;
+  } catch { return 0; }
+}
+function bumpSwipes() {
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem(SWIPE_KEY, JSON.stringify({ date: today, count: getTodaySwipes() + 1 }));
 }
 
 const Discover = () => {
@@ -29,42 +49,55 @@ const Discover = () => {
   const [me, setMe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [matchModal, setMatchModal] = useState<Profile | null>(null);
+  const [filterCountry, setFilterCountry] = useState<string>("");
+  const [filterFinancial, setFilterFinancial] = useState<string>("");
 
-  useEffect(() => {
+  const isPremium = !!me?.is_premium;
+
+  async function load() {
     if (!user) return;
-    (async () => {
-      const { data: myProfile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-      setMe(myProfile);
-      if (!myProfile?.gender || (myProfile.photos?.length ?? 0) === 0) {
-        nav("/onboarding"); return;
-      }
-      const { data: swiped } = await supabase.from("swipes").select("target_id").eq("swiper_id", user.id);
-      const swipedIds = new Set((swiped ?? []).map((s: any) => s.target_id));
-      swipedIds.add(user.id);
-      const { data: list } = await supabase.from("profiles").select("*").eq("is_active", true).limit(100);
-      setProfiles((list ?? []).filter((p: any) => !swipedIds.has(p.id)));
-      setLoading(false);
-    })();
-  }, [user, nav]);
+    setLoading(true);
+    const { data: myProfile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    setMe(myProfile);
+    if (!myProfile?.gender || (myProfile.photos?.length ?? 0) === 0) {
+      nav("/onboarding"); return;
+    }
+    const { data: rec, error } = await supabase.rpc("recommend_profiles", { _user_id: user.id, _limit: 60 });
+    let list = (rec as Profile[] | null) ?? [];
+    if (error) {
+      const { data } = await supabase.from("profiles").select("*").eq("is_active", true).neq("id", user.id).limit(60);
+      list = (data as Profile[]) ?? [];
+    }
+    if (myProfile?.is_premium) {
+      if (filterCountry) list = list.filter(p => p.country === filterCountry);
+      if (filterFinancial) list = list.filter(p => p.financial_status === filterFinancial);
+    }
+    setProfiles(list);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterFinancial]);
 
   async function swipe(target: Profile, liked: boolean) {
     if (!user) return;
+    if (!isPremium && getTodaySwipes() >= FREE_DAILY_SWIPES) {
+      toast.error(`Daily limit reached (${FREE_DAILY_SWIPES}). Upgrade to premium for unlimited swipes.`);
+      nav("/connect"); return;
+    }
+    bumpSwipes();
     setProfiles(p => p.filter(x => x.id !== target.id));
     const { error } = await supabase.from("swipes").insert({ swiper_id: user.id, target_id: target.id, liked });
     if (error) return toast.error(error.message);
     if (liked) {
-      // For simulated profiles: simulate auto-like back ~70% of the time
-      if ((target as any).is_simulated) {
+      if (target.is_simulated) {
         if (Math.random() < 0.7) {
           await supabase.from("swipes").insert({ swiper_id: target.id, target_id: user.id, liked: true });
-          // Manually create match for simulated users (since they can't trigger via auth)
           const a = user.id < target.id ? user.id : target.id;
           const b = user.id < target.id ? target.id : user.id;
           await supabase.from("matches").insert({ user_a: a, user_b: b });
           setMatchModal(target);
         }
       } else {
-        // Check if a match was created
         const { data: m } = await supabase.from("matches").select("id").or(`and(user_a.eq.${user.id},user_b.eq.${target.id}),and(user_a.eq.${target.id},user_b.eq.${user.id})`).maybeSingle();
         if (m) setMatchModal(target);
       }
@@ -73,15 +106,56 @@ const Discover = () => {
 
   const top = profiles[0];
   const next = profiles[1];
+  const swipesLeft = isPremium ? Infinity : Math.max(0, FREE_DAILY_SWIPES - getTodaySwipes());
 
   return (
     <div className="container max-w-md py-4 pb-24 md:pb-8">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Discover</h1>
-          <p className="text-xs text-muted-foreground">Swipe right to like, left to pass</p>
+          <p className="text-xs text-muted-foreground">
+            {isPremium ? <span className="inline-flex items-center gap-1 text-primary"><Crown className="h-3 w-3" /> Premium · unlimited</span>
+              : `${swipesLeft} free swipes left today`}
+          </p>
         </div>
-        <Sparkles className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="icon" variant="outline"><Filter className="h-4 w-4" /></Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader><SheetTitle>Premium filters</SheetTitle></SheetHeader>
+              <div className="mt-4 space-y-4">
+                {!isPremium && (
+                  <div className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
+                    <Crown className="inline h-4 w-4 text-primary" /> These filters are premium. <button className="underline" onClick={() => nav("/connect")}>Upgrade</button>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium">Country</label>
+                  <Select value={filterCountry} onValueChange={(v) => setFilterCountry(v === "__all" ? "" : v)} disabled={!isPremium}>
+                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all">Any</SelectItem>
+                      {COUNTRIES.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Financial status</label>
+                  <Select value={filterFinancial} onValueChange={(v) => setFilterFinancial(v === "__all" ? "" : v)} disabled={!isPremium}>
+                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all">Any</SelectItem>
+                      {FINANCIAL_OPTS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+          <Sparkles className="h-5 w-5 text-primary" />
+        </div>
       </div>
 
       <div className="relative mx-auto aspect-[3/4] max-w-sm">
