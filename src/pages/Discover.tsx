@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { Heart, X, MapPin, Sparkles, Crown, Filter } from "lucide-react";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
+import { Heart, X, MapPin, Sparkles, Crown, Filter, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -26,21 +26,20 @@ interface Profile {
   religion?: string | null;
   financial_status?: string | null;
   is_simulated?: boolean;
+  distance_km?: number | null;
 }
 
 const SWIPE_KEY = "hl_swipes_today";
-
-function getTodaySwipes() {
+const getTodaySwipes = () => {
   try {
     const raw = JSON.parse(localStorage.getItem(SWIPE_KEY) || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    return raw.date === today ? raw.count : 0;
+    return raw.date === new Date().toISOString().slice(0, 10) ? raw.count : 0;
   } catch { return 0; }
-}
-function bumpSwipes() {
+};
+const bumpSwipes = () => {
   const today = new Date().toISOString().slice(0, 10);
   localStorage.setItem(SWIPE_KEY, JSON.stringify({ date: today, count: getTodaySwipes() + 1 }));
-}
+};
 
 const Discover = () => {
   const { user } = useAuth();
@@ -49,8 +48,9 @@ const Discover = () => {
   const [me, setMe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [matchModal, setMatchModal] = useState<Profile | null>(null);
-  const [filterCountry, setFilterCountry] = useState<string>("");
-  const [filterFinancial, setFilterFinancial] = useState<string>("");
+  const [filterCountry, setFilterCountry] = useState("");
+  const [filterFinancial, setFilterFinancial] = useState("");
+  const [nearbyOnly, setNearbyOnly] = useState(false);
 
   const isPremium = !!me?.is_premium;
 
@@ -59,9 +59,7 @@ const Discover = () => {
     setLoading(true);
     const { data: myProfile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     setMe(myProfile);
-    if (!myProfile?.gender || (myProfile.photos?.length ?? 0) === 0) {
-      nav("/onboarding"); return;
-    }
+    if (!myProfile?.gender || (myProfile.photos?.length ?? 0) === 0) { nav("/onboarding"); return; }
     const { data: rec, error } = await supabase.rpc("recommend_profiles", { _user_id: user.id, _limit: 60 });
     let list = (rec as Profile[] | null) ?? [];
     if (error) {
@@ -72,13 +70,19 @@ const Discover = () => {
       if (filterCountry) list = list.filter(p => p.country === filterCountry);
       if (filterFinancial) list = list.filter(p => p.financial_status === filterFinancial);
     }
+    if (nearbyOnly) list = list.filter(p => p.distance_km != null && p.distance_km <= 100);
     setProfiles(list);
     setLoading(false);
   }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterFinancial, nearbyOnly]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterFinancial]);
+  // Preload next card's image for instant render on slow networks
+  useEffect(() => {
+    const next = profiles[1]?.photos?.[0];
+    if (next) { const i = new Image(); i.src = next; }
+  }, [profiles]);
 
-  async function swipe(target: Profile, liked: boolean) {
+  async function commitSwipe(target: Profile, liked: boolean) {
     if (!user) return;
     if (!isPremium && getTodaySwipes() >= FREE_DAILY_SWIPES) {
       toast.error(`Daily limit reached (${FREE_DAILY_SWIPES}). Upgrade to premium for unlimited swipes.`);
@@ -114,15 +118,17 @@ const Discover = () => {
         <div>
           <h1 className="font-display text-2xl font-bold">Discover</h1>
           <p className="text-xs text-muted-foreground">
-            {isPremium ? <span className="inline-flex items-center gap-1 text-primary"><Crown className="h-3 w-3" /> Premium · unlimited</span>
+            {isPremium
+              ? <span className="inline-flex items-center gap-1 text-primary"><Crown className="h-3 w-3" /> Premium · unlimited</span>
               : `${swipesLeft} free swipes left today`}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" variant={nearbyOnly ? "default" : "outline"} onClick={() => setNearbyOnly(v => !v)} className="gap-1.5">
+            <Navigation className="h-3.5 w-3.5" /> Near me
+          </Button>
           <Sheet>
-            <SheetTrigger asChild>
-              <Button size="icon" variant="outline"><Filter className="h-4 w-4" /></Button>
-            </SheetTrigger>
+            <SheetTrigger asChild><Button size="icon" variant="outline"><Filter className="h-4 w-4" /></Button></SheetTrigger>
             <SheetContent>
               <SheetHeader><SheetTitle>Premium filters</SheetTitle></SheetHeader>
               <div className="mt-4 space-y-4">
@@ -170,17 +176,21 @@ const Discover = () => {
           </div>
         )}
         <AnimatePresence>
-          {next && <Card key={next.id} profile={next} stacked />}
-          {top && <SwipeCard key={top.id} profile={top} onSwipe={swipe} />}
+          {next && <Card key={`s-${next.id}`} profile={next} stacked />}
+          {top && <SwipeCard key={top.id} profile={top} onSwipe={commitSwipe} />}
         </AnimatePresence>
       </div>
 
       {top && (
         <div className="mt-6 flex items-center justify-center gap-6">
-          <button onClick={() => swipe(top, false)} className="grid h-14 w-14 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-card transition hover:scale-105 hover:text-destructive">
+          <button id="hl-nope-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent("hl-fly", { detail: { dir: -1, id: top.id } }))}
+            className="grid h-14 w-14 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-card transition active:scale-95 hover:scale-105 hover:text-destructive">
             <X className="h-6 w-6" />
           </button>
-          <button onClick={() => swipe(top, true)} className="grid h-16 w-16 place-items-center rounded-full gradient-primary text-primary-foreground shadow-glow transition hover:scale-105">
+          <button id="hl-like-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent("hl-fly", { detail: { dir: 1, id: top.id } }))}
+            className="grid h-16 w-16 place-items-center rounded-full gradient-primary text-primary-foreground shadow-glow transition active:scale-95 hover:scale-105">
             <Heart className="h-7 w-7" />
           </button>
         </div>
@@ -190,9 +200,11 @@ const Discover = () => {
         {matchModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-sm p-4">
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="w-full max-w-sm rounded-3xl gradient-hero p-1 shadow-glow">
+            <motion.div initial={{ scale: 0.7, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 220, damping: 18 }}
+              className="w-full max-w-sm rounded-3xl gradient-hero p-1 shadow-glow">
               <div className="rounded-3xl bg-card p-6 text-center">
-                <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full gradient-primary text-primary-foreground"><Heart className="h-7 w-7" /></div>
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.15, type: "spring" }}
+                  className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full gradient-primary text-primary-foreground"><Heart className="h-7 w-7" /></motion.div>
                 <h2 className="font-display text-3xl font-bold text-gradient">It's a match!</h2>
                 <p className="mt-2 text-muted-foreground">You and <strong>{matchModal.display_name}</strong> liked each other.</p>
                 <div className="mt-4 flex gap-3">
@@ -210,24 +222,48 @@ const Discover = () => {
 
 function SwipeCard({ profile, onSwipe }: { profile: Profile; onSwipe: (p: Profile, liked: boolean) => void }) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-15, 15]);
-  const likeOp = useTransform(x, [0, 100], [0, 1]);
-  const nopeOp = useTransform(x, [-100, 0], [1, 0]);
+  const y = useMotionValue(0);
+  const rotate = useTransform(x, [-300, 0, 300], [-18, 0, 18]);
+  const likeOp = useTransform(x, [20, 140], [0, 1]);
+  const nopeOp = useTransform(x, [-140, -20], [1, 0]);
+  const cardScale = useTransform(x, [-200, 0, 200], [0.96, 1, 0.96]);
+
+  function fly(dir: number) {
+    animate(x, dir * 600, { type: "spring", stiffness: 220, damping: 26, velocity: dir * 800 });
+    setTimeout(() => onSwipe(profile, dir > 0), 180);
+  }
+
+  useEffect(() => {
+    const h = (e: any) => { if (e.detail?.id === profile.id) fly(e.detail.dir); };
+    window.addEventListener("hl-fly", h);
+    return () => window.removeEventListener("hl-fly", h);
+    // eslint-disable-next-line
+  }, [profile.id]);
+
+  function handleEnd(_: any, info: PanInfo) {
+    const power = info.offset.x + info.velocity.x * 0.15;
+    if (power > 140) fly(1);
+    else if (power < -140) fly(-1);
+    else animate(x, 0, { type: "spring", stiffness: 400, damping: 32 });
+  }
 
   return (
     <motion.div
-      style={{ x, rotate }}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      onDragEnd={(_, info) => {
-        if (info.offset.x > 120) onSwipe(profile, true);
-        else if (info.offset.x < -120) onSwipe(profile, false);
-      }}
-      className="absolute inset-0 cursor-grab active:cursor-grabbing"
+      style={{ x, y, rotate, scale: cardScale }}
+      drag
+      dragElastic={0.6}
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      onDragEnd={handleEnd}
+      whileTap={{ cursor: "grabbing" }}
+      initial={{ scale: 0.95, opacity: 0, y: 20 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing"
     >
       <Card profile={profile} />
-      <motion.div style={{ opacity: likeOp }} className="pointer-events-none absolute left-4 top-4 rounded-lg border-4 border-primary px-3 py-1 font-bold text-primary rotate-[-15deg]">LIKE</motion.div>
-      <motion.div style={{ opacity: nopeOp }} className="pointer-events-none absolute right-4 top-4 rounded-lg border-4 border-destructive px-3 py-1 font-bold text-destructive rotate-[15deg]">NOPE</motion.div>
+      <motion.div style={{ opacity: likeOp }} className="pointer-events-none absolute left-4 top-4 rounded-lg border-4 border-emerald-400 px-3 py-1 font-bold text-emerald-400 rotate-[-15deg] backdrop-blur-sm">LIKE</motion.div>
+      <motion.div style={{ opacity: nopeOp }} className="pointer-events-none absolute right-4 top-4 rounded-lg border-4 border-destructive px-3 py-1 font-bold text-destructive rotate-[15deg] backdrop-blur-sm">NOPE</motion.div>
     </motion.div>
   );
 }
@@ -237,21 +273,28 @@ function Card({ profile, stacked, placeholder }: { profile?: Profile; stacked?: 
   if (!profile) return null;
   const photo = profile.photos?.[0];
   return (
-    <div className={`absolute inset-0 overflow-hidden rounded-3xl bg-card shadow-card ${stacked ? "scale-95 opacity-70" : ""}`}>
-      {photo ? <img src={photo} alt={profile.display_name} className="h-full w-full object-cover" /> :
-        <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">No photo</div>}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5 text-white">
+    <motion.div
+      initial={stacked ? false : { scale: 0.95, opacity: 0 }}
+      animate={stacked ? { scale: 0.95, opacity: 0.7 } : { scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 220, damping: 24 }}
+      className="absolute inset-0 overflow-hidden rounded-3xl bg-card shadow-card"
+    >
+      {photo
+        ? <img src={photo} alt={profile.display_name} loading="eager" decoding="async" className="h-full w-full object-cover" />
+        : <div className="grid h-full w-full place-items-center bg-muted text-muted-foreground">No photo</div>}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-5 text-white">
         <h2 className="font-display text-2xl font-bold">{profile.display_name}{profile.age ? `, ${profile.age}` : ""}</h2>
-        {(profile.city || profile.country) && (
-          <p className="mt-1 flex items-center gap-1 text-sm opacity-90"><MapPin className="h-3.5 w-3.5" /> {[profile.city, profile.country].filter(Boolean).join(", ")}</p>
-        )}
+        <p className="mt-1 flex items-center gap-2 text-sm opacity-90">
+          {(profile.city || profile.country) && (<><MapPin className="h-3.5 w-3.5" /> {[profile.city, profile.country].filter(Boolean).join(", ")}</>)}
+          {profile.distance_km != null && <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px]">{profile.distance_km < 1 ? "<1" : Math.round(profile.distance_km)} km</span>}
+        </p>
         {profile.bio && <p className="mt-2 line-clamp-2 text-sm opacity-90">{profile.bio}</p>}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {(profile.interests ?? []).slice(0, 4).map(t => <Badge key={t} variant="secondary" className="bg-white/20 text-white border-0">{t}</Badge>)}
           {(profile.conditions ?? []).slice(0, 2).map(t => <Badge key={t} className="bg-primary/80 text-white border-0">{t.replace(/-/g, " ")}</Badge>)}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

@@ -11,15 +11,15 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { toast } from "sonner";
 import { Heart, Mail } from "lucide-react";
 
-const SUPPORTED_DIALS = COUNTRIES.map(c => c.dial);
-
-const signupSchema = z.object({
-  email: z.string().trim().email().max(255),
-  password: z.string().min(8).max(72),
-  displayName: z.string().trim().min(2).max(50),
-  dial: z.string().refine(v => SUPPORTED_DIALS.includes(v), "Country not supported"),
-  phone: z.string().trim().regex(/^\d{6,14}$/, "Phone digits only (no spaces)"),
-});
+function makeSignupSchema(allowed: string[]) {
+  return z.object({
+    email: z.string().trim().email().max(255),
+    password: z.string().min(8).max(72),
+    displayName: z.string().trim().min(2).max(50),
+    dial: z.string().refine(v => allowed.includes(v), "Country not supported"),
+    phone: z.string().trim().regex(/^\d{6,14}$/, "Phone digits only (no spaces)"),
+  });
+}
 
 const loginSchema = z.object({
   email: z.string().trim().email(),
@@ -45,7 +45,8 @@ const Auth = () => {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const parsed = signupSchema.safeParse(form);
+        const allowed = (s?.allowed_country_codes && s.allowed_country_codes.length) ? s.allowed_country_codes : COUNTRIES.map(c => c.dial);
+        const parsed = makeSignupSchema(allowed).safeParse(form);
         if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
         const phoneFull = `${form.dial}${form.phone}`;
         const { error } = await supabase.auth.signUp({
@@ -138,7 +139,7 @@ const Auth = () => {
                   <Select value={form.dial} onValueChange={v => setForm({ ...form, dial: v })}>
                     <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {COUNTRIES.map(c => <SelectItem key={c.code} value={c.dial}>{c.dial} {c.code}</SelectItem>)}
+                      {COUNTRIES.filter(c => !s?.allowed_country_codes?.length || s.allowed_country_codes.includes(c.dial)).map(c => <SelectItem key={c.code} value={c.dial}>{c.dial} {c.code}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Input placeholder="7700900123" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })} required />
