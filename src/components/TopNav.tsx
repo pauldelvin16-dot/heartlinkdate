@@ -8,7 +8,7 @@ export function TopNav() {
   const { user, isAdmin, signOut } = useAuth();
   const settings = useSiteSettings();
   const loc = useLocation();
-  if (loc.pathname === "/" || loc.pathname.startsWith("/auth")) return null;
+  if (loc.pathname === "/" || loc.pathname.startsWith("/auth") || loc.pathname.startsWith("/admin")) return null;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-lg">
