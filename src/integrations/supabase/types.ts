@@ -227,6 +227,11 @@ export type Database = {
           is_premium: boolean
           is_simulated: boolean
           languages: string[] | null
+          latitude: number | null
+          location_city: string | null
+          location_country: string | null
+          location_updated_at: string | null
+          longitude: number | null
           orientation: string | null
           phone: string | null
           photos: string[] | null
@@ -266,6 +271,11 @@ export type Database = {
           is_premium?: boolean
           is_simulated?: boolean
           languages?: string[] | null
+          latitude?: number | null
+          location_city?: string | null
+          location_country?: string | null
+          location_updated_at?: string | null
+          longitude?: number | null
           orientation?: string | null
           phone?: string | null
           photos?: string[] | null
@@ -305,6 +315,11 @@ export type Database = {
           is_premium?: boolean
           is_simulated?: boolean
           languages?: string[] | null
+          latitude?: number | null
+          location_city?: string | null
+          location_country?: string | null
+          location_updated_at?: string | null
+          longitude?: number | null
           orientation?: string | null
           phone?: string | null
           photos?: string[] | null
@@ -442,6 +457,45 @@ export type Database = {
           },
         ]
       }
+      user_locations: {
+        Row: {
+          accuracy: number | null
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          source: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          source?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          source?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -484,6 +538,7 @@ export type Database = {
           conditions: string[]
           country: string
           display_name: string
+          distance_km: number
           ethnicity: string
           gender: string
           id: string
