@@ -11,15 +11,15 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { toast } from "sonner";
 import { Heart, Mail } from "lucide-react";
 
-const SUPPORTED_DIALS = COUNTRIES.map(c => c.dial);
-
-const signupSchema = z.object({
-  email: z.string().trim().email().max(255),
-  password: z.string().min(8).max(72),
-  displayName: z.string().trim().min(2).max(50),
-  dial: z.string().refine(v => SUPPORTED_DIALS.includes(v), "Country not supported"),
-  phone: z.string().trim().regex(/^\d{6,14}$/, "Phone digits only (no spaces)"),
-});
+function makeSignupSchema(allowed: string[]) {
+  return z.object({
+    email: z.string().trim().email().max(255),
+    password: z.string().min(8).max(72),
+    displayName: z.string().trim().min(2).max(50),
+    dial: z.string().refine(v => allowed.includes(v), "Country not supported"),
+    phone: z.string().trim().regex(/^\d{6,14}$/, "Phone digits only (no spaces)"),
+  });
+}
 
 const loginSchema = z.object({
   email: z.string().trim().email(),
