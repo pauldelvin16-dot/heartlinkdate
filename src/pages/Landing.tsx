@@ -30,14 +30,19 @@ const Landing = () => {
             Find your <span className="text-gradient">spark</span>.<br />Whoever you are.
           </h1>
           <p className="mb-6 max-w-md text-lg text-muted-foreground">
-            {s?.tagline ?? "Modern dating built for everyone — gay, straight, mature singles, people with conditions, all welcome."}
+            {s?.tagline ?? "Modern dating built for everyone — gay, straight, mature singles, retired & divorced, widowed, single parents, and people living with conditions. All welcome."}
           </p>
+          <div className="mb-6 flex flex-wrap gap-1.5 text-xs">
+            {["Retired", "Divorced", "Widowed", "Single parents", "60+", "LGBTQ+", "Living with conditions"].map(t => (
+              <span key={t} className="rounded-full border border-border bg-card px-2.5 py-1 text-muted-foreground">{t}</span>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-3">
             <Link to="/auth?mode=signup"><Button size="lg" className="gradient-primary text-primary-foreground shadow-glow">Create account</Button></Link>
             <Link to="/install"><Button size="lg" variant="outline"><Smartphone className="mr-2 h-4 w-4" /> Install app</Button></Link>
           </div>
           <div className="mt-8 grid grid-cols-3 gap-4 text-sm">
-            <Stat icon={Globe} label="9 countries" />
+            <Stat icon={Globe} label="Global reach" />
             <Stat icon={Shield} label="Verified phones" />
             <Stat icon={Heart} label="Real matches" />
           </div>
