@@ -139,7 +139,7 @@ const Auth = () => {
                   <Select value={form.dial} onValueChange={v => setForm({ ...form, dial: v })}>
                     <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {COUNTRIES.map(c => <SelectItem key={c.code} value={c.dial}>{c.dial} {c.code}</SelectItem>)}
+                      {COUNTRIES.filter(c => !s?.allowed_country_codes?.length || s.allowed_country_codes.includes(c.dial)).map(c => <SelectItem key={c.code} value={c.dial}>{c.dial} {c.code}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Input placeholder="7700900123" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })} required />
