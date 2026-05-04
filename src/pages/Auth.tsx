@@ -45,7 +45,8 @@ const Auth = () => {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const parsed = signupSchema.safeParse(form);
+        const allowed = (s?.allowed_country_codes && s.allowed_country_codes.length) ? s.allowed_country_codes : COUNTRIES.map(c => c.dial);
+        const parsed = makeSignupSchema(allowed).safeParse(form);
         if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
         const phoneFull = `${form.dial}${form.phone}`;
         const { error } = await supabase.auth.signUp({
