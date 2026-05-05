@@ -62,8 +62,8 @@ const Admin = () => {
       supabase.from("matches").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("email_templates").select("*").order("key"),
       supabase.from("user_locations").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
-      supabase.from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
+      (supabase as any).from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
+      (supabase as any).from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
@@ -110,7 +110,7 @@ const Admin = () => {
     toast.success("SMTP saved");
   }
   async function saveMpesa() {
-    const { error } = await supabase.from("mpesa_settings").update({
+    const { error } = await (supabase as any).from("mpesa_settings").update({
       is_active: !!mpesa.is_active, environment: mpesa.environment || "sandbox",
       consumer_key: mpesa.consumer_key, consumer_secret: mpesa.consumer_secret,
       pass_key: mpesa.pass_key, shortcode: mpesa.shortcode,
