@@ -77,6 +77,93 @@ export type Database = {
           },
         ]
       }
+      mpesa_payments: {
+        Row: {
+          amount: number
+          checkout_request_id: string | null
+          created_at: string
+          id: string
+          merchant_request_id: string | null
+          phone: string
+          raw_response: Json | null
+          result_code: string | null
+          result_desc: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          checkout_request_id?: string | null
+          created_at?: string
+          id?: string
+          merchant_request_id?: string | null
+          phone: string
+          raw_response?: Json | null
+          result_code?: string | null
+          result_desc?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          checkout_request_id?: string | null
+          created_at?: string
+          id?: string
+          merchant_request_id?: string | null
+          phone?: string
+          raw_response?: Json | null
+          result_code?: string | null
+          result_desc?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mpesa_settings: {
+        Row: {
+          account_reference: string
+          amount: number
+          consumer_key: string | null
+          consumer_secret: string | null
+          description: string
+          environment: string
+          id: number
+          is_active: boolean
+          pass_key: string | null
+          shortcode: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_reference?: string
+          amount?: number
+          consumer_key?: string | null
+          consumer_secret?: string | null
+          description?: string
+          environment?: string
+          id?: number
+          is_active?: boolean
+          pass_key?: string | null
+          shortcode?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_reference?: string
+          amount?: number
+          consumer_key?: string | null
+          consumer_secret?: string | null
+          description?: string
+          environment?: string
+          id?: number
+          is_active?: boolean
+          pass_key?: string | null
+          shortcode?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       otp_codes: {
         Row: {
           code_hash: string
@@ -215,6 +302,7 @@ export type Database = {
           display_name: string
           drinking: string | null
           education: string | null
+          email: string | null
           ethnicity: string | null
           financial_status: string | null
           gender: string | null
@@ -259,6 +347,7 @@ export type Database = {
           display_name: string
           drinking?: string | null
           education?: string | null
+          email?: string | null
           ethnicity?: string | null
           financial_status?: string | null
           gender?: string | null
@@ -303,6 +392,7 @@ export type Database = {
           display_name?: string
           drinking?: string | null
           education?: string | null
+          email?: string | null
           ethnicity?: string | null
           financial_status?: string | null
           gender?: string | null
@@ -548,6 +638,10 @@ export type Database = {
           religion: string
           score: number
         }[]
+      }
+      upsert_swipe: {
+        Args: { _liked: boolean; _swiper_id: string; _target_id: string }
+        Returns: Json
       }
     }
     Enums: {
