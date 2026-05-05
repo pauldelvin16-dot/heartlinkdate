@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
@@ -276,7 +277,7 @@ const Admin = () => {
                 <Field label="From email"><Input type="email" value={smtp.from_email ?? ""} onChange={e => setSmtp({ ...smtp, from_email: e.target.value })} /></Field>
                 <Field label="Reply-to (optional)"><Input value={smtp.reply_to ?? ""} onChange={e => setSmtp({ ...smtp, reply_to: e.target.value })} /></Field>
               </div>
-              <Toggle label="Use SSL (port 465)" hint="Off = STARTTLS on 587." checked={!!smtp.secure} onChange={v => setSmtp({ ...smtp, secure: v })} />
+              <Toggle label="Use SSL (port 465)" hint="Off = STARTTLS on 587. Saving also auto-corrects this from the port." checked={Number(smtp.port) === 465} onChange={v => setSmtp({ ...smtp, secure: v, port: v ? 465 : 587 })} />
               <Toggle label="Enable email sending" checked={!!smtp.is_active} onChange={v => setSmtp({ ...smtp, is_active: v })} />
               <div className="flex flex-wrap items-center gap-2">
                 <Button onClick={saveSmtp} className="gradient-primary text-primary-foreground">Save SMTP</Button>
