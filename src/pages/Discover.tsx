@@ -126,7 +126,7 @@ const Discover = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant={nearbyOnly ? "default" : "outline"} onClick={() => setNearbyOnly(v => !v)} className="gap-1.5">
+          <Button size="sm" variant={nearbyOnly ? "default" : "outline"} onClick={() => isPremium ? setNearbyOnly(v => !v) : nav("/connect")} className="gap-1.5">
             <Navigation className="h-3.5 w-3.5" /> Near me
           </Button>
           <Sheet>
@@ -158,6 +158,17 @@ const Discover = () => {
                       {FINANCIAL_OPTS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-sm font-medium">Location radius</label>
+                    <Select value={radiusUnit} onValueChange={(v) => setRadiusUnit(v as "km" | "mi")} disabled={!isPremium}>
+                      <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="km">km</SelectItem><SelectItem value="mi">miles</SelectItem></SelectContent>
+                    </Select>
+                  </div>
+                  <Slider disabled={!isPremium} value={[radiusValue]} min={5} max={500} step={5} onValueChange={v => setRadiusValue(v[0] ?? 100)} />
+                  <p className="text-xs text-muted-foreground">Within {radiusValue} {radiusUnit}</p>
                 </div>
               </div>
             </SheetContent>
@@ -223,6 +234,7 @@ const Discover = () => {
 };
 
 function SwipeCard({ profile, onSwipe }: { profile: Profile; onSwipe: (p: Profile, liked: boolean) => void }) {
+  const flew = useRef(false);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotate = useTransform(x, [-300, 0, 300], [-18, 0, 18]);
@@ -231,6 +243,8 @@ function SwipeCard({ profile, onSwipe }: { profile: Profile; onSwipe: (p: Profil
   const cardScale = useTransform(x, [-200, 0, 200], [0.96, 1, 0.96]);
 
   function fly(dir: number) {
+    if (flew.current) return;
+    flew.current = true;
     animate(x, dir * 600, { type: "spring", stiffness: 220, damping: 26, velocity: dir * 800 });
     setTimeout(() => onSwipe(profile, dir > 0), 180);
   }
