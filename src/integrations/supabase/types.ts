@@ -612,6 +612,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_simulated_match: {
+        Args: { _target_id: string; _user_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
