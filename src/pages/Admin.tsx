@@ -12,10 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
-  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home,
+  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -26,6 +26,7 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "users", label: "Users", icon: Users },
   { key: "matches", label: "Matches", icon: Heart },
   { key: "locations", label: "Locations", icon: MapPin },
+  { key: "mpesa", label: "M-Pesa", icon: Smartphone },
 ];
 
 const Admin = () => {
@@ -41,6 +42,8 @@ const Admin = () => {
   const [matches, setMatches] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
+  const [mpesa, setMpesa] = useState<any>(null);
+  const [payments, setPayments] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
 
@@ -51,7 +54,7 @@ const Admin = () => {
   useEffect(() => { reload(); }, []);
 
   async function reload() {
-    const [s1, smtp1, c1, p1, m1, t1, l1] = await Promise.all([
+    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1] = await Promise.all([
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("smtp_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("premium_contacts").select("*").order("created_at", { ascending: false }),
@@ -59,17 +62,20 @@ const Admin = () => {
       supabase.from("matches").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("email_templates").select("*").order("key"),
       supabase.from("user_locations").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
+      supabase.from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
     setLocations(l1.data ?? []);
+    setMpesa(mp1.data); setPayments(pay1.data ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return profiles;
     return profiles.filter(p =>
-      [p.display_name, p.country, p.city, p.gender, p.orientation, p.religion, p.id]
+      [p.display_name, p.email, p.phone, p.country, p.city, p.gender, p.orientation, p.religion, p.id]
         .filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q))
     );
   }, [search, profiles]);
@@ -93,14 +99,27 @@ const Admin = () => {
     toast.success("Site settings saved");
   }
   async function saveSmtp() {
+    const port = Number(smtp.port) || 587;
     const { error } = await supabase.from("smtp_settings").update({
-      host: smtp.host, port: Number(smtp.port) || 587, secure: !!smtp.secure,
+      host: smtp.host, port, secure: port === 465,
       username: smtp.username, password: smtp.password,
       from_email: smtp.from_email, from_name: smtp.from_name, reply_to: smtp.reply_to,
       is_active: !!smtp.is_active, updated_at: new Date().toISOString(),
     }).eq("id", 1);
     if (error) return toast.error(error.message);
     toast.success("SMTP saved");
+  }
+  async function saveMpesa() {
+    const { error } = await supabase.from("mpesa_settings").update({
+      is_active: !!mpesa.is_active, environment: mpesa.environment || "sandbox",
+      consumer_key: mpesa.consumer_key, consumer_secret: mpesa.consumer_secret,
+      pass_key: mpesa.pass_key, shortcode: mpesa.shortcode,
+      account_reference: mpesa.account_reference || "Premium",
+      description: mpesa.description || "Premium unlock",
+      amount: Number(mpesa.amount) || 1, updated_at: new Date().toISOString(),
+    }).eq("id", 1);
+    if (error) return toast.error(error.message);
+    toast.success("M-Pesa settings saved");
   }
   async function sendTest() {
     if (!testTo) return toast.error("Enter a test recipient");
