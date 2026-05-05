@@ -402,6 +402,27 @@ const Admin = () => {
               </div>
             </Section>
           )}
+
+          {tab === "mpesa" && mpesa && (
+            <Section title="M-Pesa Daraja" subtitle="Paybill M-Pesa Express (STK Push) premium unlocks. Disable to hide it from users.">
+              <Toggle label="Enable M-Pesa premium payments" checked={!!mpesa.is_active} onChange={v => setMpesa({ ...mpesa, is_active: v })} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Environment"><Select value={mpesa.environment ?? "sandbox"} onValueChange={v => setMpesa({ ...mpesa, environment: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sandbox">Sandbox</SelectItem><SelectItem value="production">Production</SelectItem></SelectContent></Select></Field>
+                <Field label="Premium amount (KES)"><Input type="number" min={1} value={mpesa.amount ?? 1} onChange={e => setMpesa({ ...mpesa, amount: e.target.value })} /></Field>
+                <Field label="Consumer key"><Input value={mpesa.consumer_key ?? ""} onChange={e => setMpesa({ ...mpesa, consumer_key: e.target.value })} /></Field>
+                <Field label="Consumer secret"><Input type="password" value={mpesa.consumer_secret ?? ""} onChange={e => setMpesa({ ...mpesa, consumer_secret: e.target.value })} /></Field>
+                <Field label="Pass key"><Input type="password" value={mpesa.pass_key ?? ""} onChange={e => setMpesa({ ...mpesa, pass_key: e.target.value })} /></Field>
+                <Field label="Paybill shortcode"><Input value={mpesa.shortcode ?? ""} onChange={e => setMpesa({ ...mpesa, shortcode: e.target.value })} /></Field>
+                <Field label="Account reference"><Input value={mpesa.account_reference ?? "Premium"} onChange={e => setMpesa({ ...mpesa, account_reference: e.target.value })} /></Field>
+                <Field label="Transaction description"><Input value={mpesa.description ?? "Premium unlock"} onChange={e => setMpesa({ ...mpesa, description: e.target.value })} /></Field>
+              </div>
+              <Button onClick={saveMpesa} className="gradient-primary text-primary-foreground">Save M-Pesa</Button>
+              <div className="overflow-hidden rounded-xl border border-border bg-background">
+                {payments.map(p => <div key={p.id} className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 text-sm last:border-b-0"><span>{p.phone} · KES {p.amount} · {p.status}</span><span className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</span></div>)}
+                {payments.length === 0 && <p className="p-4 text-sm text-muted-foreground">No M-Pesa payments yet.</p>}
+              </div>
+            </Section>
+          )}
         </main>
       </div>
 
