@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { Heart, X, MapPin, Sparkles, Crown, Filter, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { COUNTRIES, FINANCIAL_OPTS, FREE_DAILY_SWIPES } from "@/lib/constants";
@@ -51,6 +52,8 @@ const Discover = () => {
   const [filterCountry, setFilterCountry] = useState("");
   const [filterFinancial, setFilterFinancial] = useState("");
   const [nearbyOnly, setNearbyOnly] = useState(false);
+  const [radiusValue, setRadiusValue] = useState(100);
+  const [radiusUnit, setRadiusUnit] = useState<"km" | "mi">("km");
 
   const isPremium = !!me?.is_premium;
 
@@ -70,11 +73,14 @@ const Discover = () => {
       if (filterCountry) list = list.filter(p => p.country === filterCountry);
       if (filterFinancial) list = list.filter(p => p.financial_status === filterFinancial);
     }
-    if (nearbyOnly) list = list.filter(p => p.distance_km != null && p.distance_km <= 100);
+    if (nearbyOnly && myProfile?.is_premium) {
+      const radiusKm = radiusUnit === "mi" ? radiusValue * 1.60934 : radiusValue;
+      list = list.filter(p => p.distance_km != null && p.distance_km <= radiusKm);
+    }
     setProfiles(list);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterFinancial, nearbyOnly]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
 
   // Preload next card's image for instant render on slow networks
   useEffect(() => {
@@ -90,20 +96,16 @@ const Discover = () => {
     }
     bumpSwipes();
     setProfiles(p => p.filter(x => x.id !== target.id));
-    const { error } = await supabase.from("swipes").insert({ swiper_id: user.id, target_id: target.id, liked });
+    const { data: swipeResult, error } = await (supabase as any).rpc("upsert_swipe", { _swiper_id: user.id, _target_id: target.id, _liked: liked });
     if (error) return toast.error(error.message);
     if (liked) {
       if (target.is_simulated) {
         if (Math.random() < 0.7) {
-          await supabase.from("swipes").insert({ swiper_id: target.id, target_id: user.id, liked: true });
-          const a = user.id < target.id ? user.id : target.id;
-          const b = user.id < target.id ? target.id : user.id;
-          await supabase.from("matches").insert({ user_a: a, user_b: b });
-          setMatchModal(target);
+          const { data: simResult } = await (supabase as any).rpc("create_simulated_match", { _user_id: user.id, _target_id: target.id });
+          if (simResult?.matched) setMatchModal(target);
         }
       } else {
-        const { data: m } = await supabase.from("matches").select("id").or(`and(user_a.eq.${user.id},user_b.eq.${target.id}),and(user_a.eq.${target.id},user_b.eq.${user.id})`).maybeSingle();
-        if (m) setMatchModal(target);
+        if (swipeResult?.matched) setMatchModal(target);
       }
     }
   }
