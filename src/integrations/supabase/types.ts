@@ -616,6 +616,15 @@ export type Database = {
         Args: { _target_id: string; _user_id: string }
         Returns: Json
       }
+      get_mpesa_public_settings: {
+        Args: never
+        Returns: {
+          account_reference: string
+          amount: number
+          description: string
+          is_active: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
