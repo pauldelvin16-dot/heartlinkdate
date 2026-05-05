@@ -330,21 +330,22 @@ const Admin = () => {
                 <Input placeholder="Search by name, country, gender…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
               </div>
               <div className="overflow-hidden rounded-xl border border-border bg-background">
-                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium uppercase text-muted-foreground sm:grid-cols-[2fr_1fr_1fr_auto_auto]">
-                  <div>Name</div><div className="hidden sm:block">Location</div><div className="hidden sm:block">Gender</div><div>Status</div><div></div>
+                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium uppercase text-muted-foreground lg:grid-cols-[2fr_1.4fr_1fr_1fr_auto_auto]">
+                  <div>Name</div><div className="hidden lg:block">Email / phone</div><div className="hidden lg:block">Location</div><div className="hidden lg:block">Gender</div><div>Status</div><div></div>
                 </div>
                 <div className="max-h-[28rem] overflow-auto">
                   {filteredProfiles.map(p => (
                     <div key={p.id} onClick={() => setActiveProfile(p)}
-                      className="grid cursor-pointer grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border px-3 py-2 text-sm transition hover:bg-muted/40 sm:grid-cols-[2fr_1fr_1fr_auto_auto]">
+                      className="grid cursor-pointer grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border px-3 py-2 text-sm transition hover:bg-muted/40 lg:grid-cols-[2fr_1.4fr_1fr_1fr_auto_auto]">
                       <div className="flex items-center gap-2 truncate">
                         <div className="grid h-7 w-7 place-items-center rounded-full bg-muted text-xs font-bold">{p.display_name?.[0]?.toUpperCase() ?? "?"}</div>
                         <span className="truncate font-medium">{p.display_name}</span>
                         {p.is_premium && <Crown className="h-3.5 w-3.5 text-primary" />}
                         {p.is_simulated && <span className="text-[10px] text-muted-foreground">seed</span>}
                       </div>
-                      <span className="hidden truncate text-xs text-muted-foreground sm:block">{[p.city, p.country].filter(Boolean).join(", ") || "—"}</span>
-                      <span className="hidden text-xs text-muted-foreground sm:block">{p.gender || "—"}</span>
+                      <span className="hidden truncate text-xs text-muted-foreground lg:block">{p.email || p.phone || "—"}</span>
+                      <span className="hidden truncate text-xs text-muted-foreground lg:block">{[p.city, p.country].filter(Boolean).join(", ") || "—"}</span>
+                      <span className="hidden text-xs text-muted-foreground lg:block">{p.gender || "—"}</span>
                       <span className={`text-xs ${p.is_active ? "text-emerald-600" : "text-muted-foreground"}`}>{p.is_active ? "active" : "hidden"}</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
