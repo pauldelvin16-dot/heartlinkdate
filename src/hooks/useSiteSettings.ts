@@ -11,6 +11,8 @@ export interface SiteSettings {
   contact_whatsapp: string | null;
   premium_message: string | null;
   allowed_country_codes: string[];
+  enable_otp_login?: boolean;
+  enable_2fa_email?: boolean;
 }
 
 export function useSiteSettings() {

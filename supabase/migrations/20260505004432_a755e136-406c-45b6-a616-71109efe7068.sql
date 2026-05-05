@@ -1,0 +1,11 @@
+REVOKE EXECUTE ON FUNCTION public.upsert_swipe(uuid, uuid, boolean) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.create_simulated_match(uuid, uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.recommend_profiles(uuid, integer) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.handle_swipe_match() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.handle_updated_at() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.sync_premium_flag() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.profiles_check_real_user() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.upsert_swipe(uuid, uuid, boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_simulated_match(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.recommend_profiles(uuid, integer) TO authenticated;

@@ -80,10 +80,12 @@ const Auth = () => {
         } else {
           const { data, error } = await supabase.functions.invoke("verify-otp", { body: { email: form.email, code: otpCode } });
           if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
-          // Use Supabase magic link sign-in to actually create a session after OTP confirms identity.
-          const { error: e2 } = await supabase.auth.signInWithOtp({ email: form.email, options: { emailRedirectTo: `${window.location.origin}/discover` } });
+          const authOtp = (data as any)?.auth_otp;
+          if (!authOtp) throw new Error("Could not create a secure sign-in session");
+          const { error: e2 } = await supabase.auth.verifyOtp({ email: form.email.trim().toLowerCase(), token: authOtp, type: "email" });
           if (e2) throw e2;
-          toast.success("Verified! Check your inbox for a sign-in link.");
+          toast.success("Signed in successfully");
+          nav("/discover");
         }
       }
     } catch (err: any) {

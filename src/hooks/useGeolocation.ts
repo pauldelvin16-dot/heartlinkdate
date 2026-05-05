@@ -49,7 +49,7 @@ export function useGeoCapture() {
         localStorage.setItem(KEY, String(Date.now()));
       },
       () => {},
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 120000 }
     );
   }, [user]);
 }

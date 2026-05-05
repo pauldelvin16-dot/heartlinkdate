@@ -9,13 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
-  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home,
+  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -26,6 +27,7 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "users", label: "Users", icon: Users },
   { key: "matches", label: "Matches", icon: Heart },
   { key: "locations", label: "Locations", icon: MapPin },
+  { key: "mpesa", label: "M-Pesa", icon: Smartphone },
 ];
 
 const Admin = () => {
@@ -41,6 +43,8 @@ const Admin = () => {
   const [matches, setMatches] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
+  const [mpesa, setMpesa] = useState<any>(null);
+  const [payments, setPayments] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
 
@@ -51,7 +55,7 @@ const Admin = () => {
   useEffect(() => { reload(); }, []);
 
   async function reload() {
-    const [s1, smtp1, c1, p1, m1, t1, l1] = await Promise.all([
+    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1] = await Promise.all([
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("smtp_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("premium_contacts").select("*").order("created_at", { ascending: false }),
@@ -59,17 +63,20 @@ const Admin = () => {
       supabase.from("matches").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("email_templates").select("*").order("key"),
       supabase.from("user_locations").select("*").order("created_at", { ascending: false }).limit(200),
+      (supabase as any).from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
+      (supabase as any).from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
     setLocations(l1.data ?? []);
+    setMpesa(mp1.data); setPayments(pay1.data ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return profiles;
     return profiles.filter(p =>
-      [p.display_name, p.country, p.city, p.gender, p.orientation, p.religion, p.id]
+      [p.display_name, p.email, p.phone, p.country, p.city, p.gender, p.orientation, p.religion, p.id]
         .filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q))
     );
   }, [search, profiles]);
@@ -93,14 +100,27 @@ const Admin = () => {
     toast.success("Site settings saved");
   }
   async function saveSmtp() {
+    const port = Number(smtp.port) || 587;
     const { error } = await supabase.from("smtp_settings").update({
-      host: smtp.host, port: Number(smtp.port) || 587, secure: !!smtp.secure,
+      host: smtp.host, port, secure: port === 465,
       username: smtp.username, password: smtp.password,
       from_email: smtp.from_email, from_name: smtp.from_name, reply_to: smtp.reply_to,
       is_active: !!smtp.is_active, updated_at: new Date().toISOString(),
     }).eq("id", 1);
     if (error) return toast.error(error.message);
     toast.success("SMTP saved");
+  }
+  async function saveMpesa() {
+    const { error } = await (supabase as any).from("mpesa_settings").update({
+      is_active: !!mpesa.is_active, environment: mpesa.environment || "sandbox",
+      consumer_key: mpesa.consumer_key, consumer_secret: mpesa.consumer_secret,
+      pass_key: mpesa.pass_key, shortcode: mpesa.shortcode,
+      account_reference: mpesa.account_reference || "Premium",
+      description: mpesa.description || "Premium unlock",
+      amount: Number(mpesa.amount) || 1, updated_at: new Date().toISOString(),
+    }).eq("id", 1);
+    if (error) return toast.error(error.message);
+    toast.success("M-Pesa settings saved");
   }
   async function sendTest() {
     if (!testTo) return toast.error("Enter a test recipient");
@@ -257,7 +277,7 @@ const Admin = () => {
                 <Field label="From email"><Input type="email" value={smtp.from_email ?? ""} onChange={e => setSmtp({ ...smtp, from_email: e.target.value })} /></Field>
                 <Field label="Reply-to (optional)"><Input value={smtp.reply_to ?? ""} onChange={e => setSmtp({ ...smtp, reply_to: e.target.value })} /></Field>
               </div>
-              <Toggle label="Use SSL (port 465)" hint="Off = STARTTLS on 587." checked={!!smtp.secure} onChange={v => setSmtp({ ...smtp, secure: v })} />
+              <Toggle label="Use SSL (port 465)" hint="Off = STARTTLS on 587. Saving also auto-corrects this from the port." checked={Number(smtp.port) === 465} onChange={v => setSmtp({ ...smtp, secure: v, port: v ? 465 : 587 })} />
               <Toggle label="Enable email sending" checked={!!smtp.is_active} onChange={v => setSmtp({ ...smtp, is_active: v })} />
               <div className="flex flex-wrap items-center gap-2">
                 <Button onClick={saveSmtp} className="gradient-primary text-primary-foreground">Save SMTP</Button>
@@ -311,21 +331,22 @@ const Admin = () => {
                 <Input placeholder="Search by name, country, gender…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
               </div>
               <div className="overflow-hidden rounded-xl border border-border bg-background">
-                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium uppercase text-muted-foreground sm:grid-cols-[2fr_1fr_1fr_auto_auto]">
-                  <div>Name</div><div className="hidden sm:block">Location</div><div className="hidden sm:block">Gender</div><div>Status</div><div></div>
+                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium uppercase text-muted-foreground lg:grid-cols-[2fr_1.4fr_1fr_1fr_auto_auto]">
+                  <div>Name</div><div className="hidden lg:block">Email / phone</div><div className="hidden lg:block">Location</div><div className="hidden lg:block">Gender</div><div>Status</div><div></div>
                 </div>
                 <div className="max-h-[28rem] overflow-auto">
                   {filteredProfiles.map(p => (
                     <div key={p.id} onClick={() => setActiveProfile(p)}
-                      className="grid cursor-pointer grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border px-3 py-2 text-sm transition hover:bg-muted/40 sm:grid-cols-[2fr_1fr_1fr_auto_auto]">
+                      className="grid cursor-pointer grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-border px-3 py-2 text-sm transition hover:bg-muted/40 lg:grid-cols-[2fr_1.4fr_1fr_1fr_auto_auto]">
                       <div className="flex items-center gap-2 truncate">
                         <div className="grid h-7 w-7 place-items-center rounded-full bg-muted text-xs font-bold">{p.display_name?.[0]?.toUpperCase() ?? "?"}</div>
                         <span className="truncate font-medium">{p.display_name}</span>
                         {p.is_premium && <Crown className="h-3.5 w-3.5 text-primary" />}
                         {p.is_simulated && <span className="text-[10px] text-muted-foreground">seed</span>}
                       </div>
-                      <span className="hidden truncate text-xs text-muted-foreground sm:block">{[p.city, p.country].filter(Boolean).join(", ") || "—"}</span>
-                      <span className="hidden text-xs text-muted-foreground sm:block">{p.gender || "—"}</span>
+                      <span className="hidden truncate text-xs text-muted-foreground lg:block">{p.email || p.phone || "—"}</span>
+                      <span className="hidden truncate text-xs text-muted-foreground lg:block">{[p.city, p.country].filter(Boolean).join(", ") || "—"}</span>
+                      <span className="hidden text-xs text-muted-foreground lg:block">{p.gender || "—"}</span>
                       <span className={`text-xs ${p.is_active ? "text-emerald-600" : "text-muted-foreground"}`}>{p.is_active ? "active" : "hidden"}</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -378,6 +399,27 @@ const Admin = () => {
                   );
                 })}
                 {locations.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No location reports yet.</p>}
+              </div>
+            </Section>
+          )}
+
+          {tab === "mpesa" && mpesa && (
+            <Section title="M-Pesa Daraja" subtitle="Paybill M-Pesa Express (STK Push) premium unlocks. Disable to hide it from users.">
+              <Toggle label="Enable M-Pesa premium payments" checked={!!mpesa.is_active} onChange={v => setMpesa({ ...mpesa, is_active: v })} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Environment"><Select value={mpesa.environment ?? "sandbox"} onValueChange={v => setMpesa({ ...mpesa, environment: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sandbox">Sandbox</SelectItem><SelectItem value="production">Production</SelectItem></SelectContent></Select></Field>
+                <Field label="Premium amount (KES)"><Input type="number" min={1} value={mpesa.amount ?? 1} onChange={e => setMpesa({ ...mpesa, amount: e.target.value })} /></Field>
+                <Field label="Consumer key"><Input value={mpesa.consumer_key ?? ""} onChange={e => setMpesa({ ...mpesa, consumer_key: e.target.value })} /></Field>
+                <Field label="Consumer secret"><Input type="password" value={mpesa.consumer_secret ?? ""} onChange={e => setMpesa({ ...mpesa, consumer_secret: e.target.value })} /></Field>
+                <Field label="Pass key"><Input type="password" value={mpesa.pass_key ?? ""} onChange={e => setMpesa({ ...mpesa, pass_key: e.target.value })} /></Field>
+                <Field label="Paybill shortcode"><Input value={mpesa.shortcode ?? ""} onChange={e => setMpesa({ ...mpesa, shortcode: e.target.value })} /></Field>
+                <Field label="Account reference"><Input value={mpesa.account_reference ?? "Premium"} onChange={e => setMpesa({ ...mpesa, account_reference: e.target.value })} /></Field>
+                <Field label="Transaction description"><Input value={mpesa.description ?? "Premium unlock"} onChange={e => setMpesa({ ...mpesa, description: e.target.value })} /></Field>
+              </div>
+              <Button onClick={saveMpesa} className="gradient-primary text-primary-foreground">Save M-Pesa</Button>
+              <div className="overflow-hidden rounded-xl border border-border bg-background">
+                {payments.map(p => <div key={p.id} className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 text-sm last:border-b-0"><span>{p.phone} · KES {p.amount} · {p.status}</span><span className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</span></div>)}
+                {payments.length === 0 && <p className="p-4 text-sm text-muted-foreground">No M-Pesa payments yet.</p>}
               </div>
             </Section>
           )}
