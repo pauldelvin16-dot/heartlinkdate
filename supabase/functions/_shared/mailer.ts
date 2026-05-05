@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 export const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -24,7 +24,19 @@ export async function getSiteAndSmtp() {
   if (!smtp || !smtp.host || !smtp.is_active) {
     throw new Error("SMTP not configured. Ask the admin to set it up in /admin.");
   }
-  return { site, smtp };
+  const port = Number(smtp.port || 587);
+  return {
+    site,
+    smtp: {
+      ...smtp,
+      port,
+      secure: port === 465,
+      host: String(smtp.host || "").trim(),
+      username: smtp.username?.trim(),
+      from_email: smtp.from_email?.trim() || smtp.username?.trim(),
+      reply_to: smtp.reply_to?.trim(),
+    },
+  };
 }
 
 export function renderTemplate(html: string, vars: Record<string, string>) {
@@ -51,11 +63,14 @@ export async function sendMail(opts: {
 
   const transporter = nodemailer.createTransport({
     host: smtp.host,
-    port: smtp.port || 587,
-    secure: !!smtp.secure, // true for 465, false for 587 (uses STARTTLS)
+    port: smtp.port,
+    secure: !!smtp.secure, // true only for SSL/465; STARTTLS is used on 587/25
     auth: smtp.username ? { user: smtp.username, pass: smtp.password } : undefined,
-    tls: { rejectUnauthorized: true, minVersion: "TLSv1.2" },
+    tls: { rejectUnauthorized: true, minVersion: "TLSv1.2", servername: smtp.host },
     requireTLS: !smtp.secure,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
   });
 
   const fromName = smtp.from_name || site?.site_name || "HeartLink";
@@ -80,5 +95,7 @@ export function originFromReq(req: Request): string {
   if (o) return o;
   const ref = req.headers.get("referer");
   if (ref) try { return new URL(ref).origin; } catch {}
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  if (host) return `${req.headers.get("x-forwarded-proto") || "https"}://${host}`;
   return "";
 }
