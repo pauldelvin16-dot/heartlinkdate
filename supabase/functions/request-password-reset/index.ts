@@ -5,12 +5,13 @@ Deno.serve(async (req) => {
   try {
     const { email } = await req.json();
     if (!email) throw new Error("email required");
+    const normalizedEmail = String(email).trim().toLowerCase();
     const sb = admin();
 
     // Look up user by email via admin API
     // @ts-ignore admin api
     const { data: list } = await sb.auth.admin.listUsers();
-    const user = list?.users?.find((u: any) => (u.email || "").toLowerCase() === String(email).toLowerCase());
+    const user = list?.users?.find((u: any) => (u.email || "").toLowerCase() === normalizedEmail);
 
     // Always return success to avoid email enumeration
     if (!user) return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "content-type": "application/json" } });
@@ -23,9 +24,9 @@ Deno.serve(async (req) => {
     const origin = originFromReq(req);
     const reset_url = `${origin}/reset-password?token=${encodeURIComponent(token)}`;
     await sendMail({
-      to: email,
+      to: normalizedEmail,
       templateKey: "password_reset",
-      vars: { name: (user.user_metadata?.display_name as string) || email.split("@")[0], reset_url, site_url: origin },
+      vars: { name: (user.user_metadata?.display_name as string) || normalizedEmail.split("@")[0], reset_url, site_url: origin },
     });
     return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (e) {
