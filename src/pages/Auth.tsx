@@ -80,9 +80,10 @@ const Auth = () => {
         } else {
           const { data, error } = await supabase.functions.invoke("verify-otp", { body: { email: form.email, code: otpCode } });
           if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
-          const authOtp = (data as any)?.auth_otp;
-          if (!authOtp) throw new Error("Could not create a secure sign-in session");
-          const { error: e2 } = await supabase.auth.verifyOtp({ email: form.email.trim().toLowerCase(), token: authOtp, type: "email" });
+          const tokenHash = (data as any)?.token_hash;
+          const verType = (data as any)?.verification_type || "magiclink";
+          if (!tokenHash) throw new Error("Could not create a secure sign-in session");
+          const { error: e2 } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: verType as any });
           if (e2) throw e2;
           toast.success("Signed in successfully");
           nav("/discover");

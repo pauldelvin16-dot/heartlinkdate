@@ -64,23 +64,34 @@ export async function sendMail(opts: {
   const transporter = nodemailer.createTransport({
     host: smtp.host,
     port: smtp.port,
-    secure: !!smtp.secure, // true only for SSL/465; STARTTLS is used on 587/25
+    secure: !!smtp.secure,
     auth: smtp.username ? { user: smtp.username, pass: smtp.password } : undefined,
-    tls: { rejectUnauthorized: true, minVersion: "TLSv1.2", servername: smtp.host },
+    tls: { minVersion: "TLSv1.2", servername: smtp.host, rejectUnauthorized: false, ciphers: "TLSv1.2" },
     requireTLS: !smtp.secure,
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
     socketTimeout: 30000,
   });
 
   const fromName = smtp.from_name || site?.site_name || "HeartLink";
   const fromEmail = smtp.from_email || smtp.username;
+  const fromDomain = String(fromEmail || "").split("@")[1] || "localhost";
+  const text = html.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const messageId = `<${crypto.randomUUID()}@${fromDomain}>`;
   const info = await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
+    sender: fromEmail,
     to: opts.to,
-    replyTo: smtp.reply_to || undefined,
+    replyTo: smtp.reply_to || fromEmail,
     subject,
     html,
+    text,
+    messageId,
+    headers: {
+      "List-Unsubscribe": `<mailto:${smtp.reply_to || fromEmail}?subject=unsubscribe>`,
+      "X-Mailer": fromName,
+      "X-Entity-Ref-ID": crypto.randomUUID(),
+    },
   });
   return info;
 }

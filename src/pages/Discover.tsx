@@ -126,6 +126,11 @@ const Discover = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {!isPremium && (
+            <Button size="sm" onClick={() => nav("/connect")} className="gap-1 gradient-primary text-primary-foreground shadow-glow">
+              <Crown className="h-3.5 w-3.5" /> Upgrade
+            </Button>
+          )}
           <Button size="sm" variant={nearbyOnly ? "default" : "outline"} onClick={() => isPremium ? setNearbyOnly(v => !v) : nav("/connect")} className="gap-1.5">
             <Navigation className="h-3.5 w-3.5" /> Near me
           </Button>
