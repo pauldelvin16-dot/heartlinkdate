@@ -97,7 +97,13 @@ const Discover = () => {
     bumpSwipes();
     setProfiles(p => p.filter(x => x.id !== target.id));
     const { data: swipeResult, error } = await (supabase as any).rpc("upsert_swipe", { _swiper_id: user.id, _target_id: target.id, _liked: liked });
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (String(error.message || "").includes("PREMIUM_REQUIRED")) {
+        toast.error("Daily free swipe limit reached — upgrade to premium for unlimited.");
+        nav("/connect"); return;
+      }
+      return toast.error(error.message);
+    }
     if (liked) {
       if (target.is_simulated) {
         if (Math.random() < 0.7) {
