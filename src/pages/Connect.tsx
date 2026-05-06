@@ -136,7 +136,12 @@ const Connect = () => {
         </div>
       )}
 
-      <h2 className="mb-3 text-lg font-semibold">Premium concierge</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Premium concierge</h2>
+        {matchCount > 0
+          ? <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600">{matchCount} match{matchCount > 1 ? "es" : ""} ready</span>
+          : <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">No matches yet — keep swiping</span>}
+      </div>
       <div className="space-y-3">
         {contacts.length === 0 && <p className="text-sm text-muted-foreground">No contacts configured yet.</p>}
         {contacts.map(c => (
