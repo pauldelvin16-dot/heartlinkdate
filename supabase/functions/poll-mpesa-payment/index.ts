@@ -15,7 +15,7 @@ async function token(base: string, key: string, secret: string) {
   return JSON.parse(text).access_token as string;
 }
 async function grantPremium(sb: any, userId: string, paymentId: string) {
-  await sb.from("premium_subscriptions").insert({ user_id: userId, plan: "premium", status: "active", notes: `M-Pesa payment ${paymentId}` });
+  await sb.rpc("grant_premium_for_payment", { _user_id: userId, _payment_id: paymentId });
 }
 
 Deno.serve(async (req) => {
