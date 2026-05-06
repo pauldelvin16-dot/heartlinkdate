@@ -90,32 +90,43 @@ const Connect = () => {
       </div>
 
       {/* Premium upgrade */}
-      {!me?.is_premium && mpesa?.is_active && (
-        <div className="mb-6 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/10 to-transparent p-5 shadow-soft">
-          <div className="mb-3 flex items-center gap-2"><Crown className="h-5 w-5 text-primary" /><h2 className="text-lg font-bold">Upgrade to Premium</h2></div>
-          <ul className="mb-4 space-y-1 text-sm text-muted-foreground">
-            <li>✨ Unlimited swipes every day</li>
-            <li>🎯 Premium filters: country, financial status, distance radius</li>
-            <li>💎 Priority placement in matching</li>
-            <li>📍 See profiles near you with distance</li>
-          </ul>
-          {payment?.status === "paid" ? (
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-emerald-600"><CheckCircle2 className="h-5 w-5" /> Premium unlocked!</div>
-          ) : (
-            <>
-              <Label className="mb-1 block">M-Pesa phone number</Label>
-              <div className="flex gap-2">
-                <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="07XXXXXXXX" />
-                <Button onClick={pay} disabled={busy || polling} className="gradient-primary text-primary-foreground whitespace-nowrap">
-                  {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Smartphone className="mr-1.5 h-4 w-4" />}
-                  Pay KES {mpesa.amount}
-                </Button>
-              </div>
-              {polling && <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Waiting for M-Pesa confirmation… enter your PIN on your phone.</p>}
-              {payment?.status === "failed" && <p className="mt-2 text-xs text-destructive">{payment.result_desc || "Payment cancelled"}</p>}
-            </>
-          )}
-        </div>
+      {!me?.is_premium && (
+        mpesa?.is_active ? (
+          <div className="mb-6 rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/10 to-transparent p-5 shadow-soft">
+            <div className="mb-3 flex items-center gap-2"><Crown className="h-5 w-5 text-primary" /><h2 className="text-lg font-bold">Upgrade to Premium</h2></div>
+            <ul className="mb-4 space-y-1 text-sm text-muted-foreground">
+              <li>✨ Unlimited swipes every day</li>
+              <li>🎯 Premium filters: country, financial status, distance radius</li>
+              <li>💎 Direct WhatsApp & email connect with matches</li>
+              <li>📍 See profiles near you with distance</li>
+            </ul>
+            {payment?.status === "paid" ? (
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-emerald-600"><CheckCircle2 className="h-5 w-5" /> Premium unlocked!</div>
+            ) : (
+              <>
+                <Label className="mb-1 block">M-Pesa phone number</Label>
+                <div className="flex gap-2">
+                  <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="07XXXXXXXX" />
+                  <Button onClick={pay} disabled={busy || polling} className="gradient-primary text-primary-foreground whitespace-nowrap">
+                    {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Smartphone className="mr-1.5 h-4 w-4" />}
+                    Pay KES {mpesa.amount}
+                  </Button>
+                </div>
+                {(polling || payment?.status === "processing" || payment?.status === "pending") && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Waiting for M-Pesa confirmation… enter your PIN on your phone.
+                  </p>
+                )}
+                {payment?.status === "failed" && <p className="mt-2 text-xs text-destructive">{payment.result_desc || "Payment cancelled"}</p>}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="mb-6 rounded-3xl border border-primary/30 bg-primary/5 p-5">
+            <div className="mb-2 flex items-center gap-2"><Crown className="h-5 w-5 text-primary" /><h2 className="text-lg font-bold">Premium upgrade</h2></div>
+            <p className="text-sm text-muted-foreground">Contact us below to unlock unlimited swipes, premium filters and direct messaging.</p>
+          </div>
+        )
       )}
 
       {me?.is_premium && (
