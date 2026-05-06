@@ -247,17 +247,15 @@ const Discover = () => {
 function SwipeCard({ profile, onSwipe }: { profile: Profile; onSwipe: (p: Profile, liked: boolean) => void }) {
   const flew = useRef(false);
   const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotate = useTransform(x, [-300, 0, 300], [-18, 0, 18]);
-  const likeOp = useTransform(x, [20, 140], [0, 1]);
-  const nopeOp = useTransform(x, [-140, -20], [1, 0]);
-  const cardScale = useTransform(x, [-200, 0, 200], [0.96, 1, 0.96]);
+  const rotate = useTransform(x, [-300, 0, 300], [-14, 0, 14]);
+  const likeOp = useTransform(x, [20, 120], [0, 1]);
+  const nopeOp = useTransform(x, [-120, -20], [1, 0]);
 
   function fly(dir: number) {
     if (flew.current) return;
     flew.current = true;
-    animate(x, dir * 600, { type: "spring", stiffness: 220, damping: 26, velocity: dir * 800 });
-    setTimeout(() => onSwipe(profile, dir > 0), 180);
+    animate(x, dir * 600, { type: "spring", stiffness: 260, damping: 28, velocity: dir * 900 });
+    setTimeout(() => onSwipe(profile, dir > 0), 160);
   }
 
   useEffect(() => {
@@ -268,29 +266,30 @@ function SwipeCard({ profile, onSwipe }: { profile: Profile; onSwipe: (p: Profil
   }, [profile.id]);
 
   function handleEnd(_: any, info: PanInfo) {
-    const power = info.offset.x + info.velocity.x * 0.15;
-    if (power > 140) fly(1);
-    else if (power < -140) fly(-1);
-    else animate(x, 0, { type: "spring", stiffness: 400, damping: 32 });
+    const power = info.offset.x + info.velocity.x * 0.18;
+    if (power > 120) fly(1);
+    else if (power < -120) fly(-1);
+    else animate(x, 0, { type: "spring", stiffness: 500, damping: 36 });
   }
 
   return (
     <motion.div
-      style={{ x, y, rotate, scale: cardScale }}
-      drag
-      dragElastic={0.6}
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      style={{ x, rotate, willChange: "transform" }}
+      drag="x"
+      dragElastic={0.7}
+      dragMomentum={false}
+      dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleEnd}
       whileTap={{ cursor: "grabbing" }}
-      initial={{ scale: 0.95, opacity: 0, y: 20 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-      transition={{ type: "spring", stiffness: 260, damping: 24 }}
-      className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.18 } }}
+      transition={{ type: "tween", duration: 0.18 }}
+      className="absolute inset-0 cursor-grab touch-none select-none active:cursor-grabbing"
     >
       <Card profile={profile} />
-      <motion.div style={{ opacity: likeOp }} className="pointer-events-none absolute left-4 top-4 rounded-lg border-4 border-emerald-400 px-3 py-1 font-bold text-emerald-400 rotate-[-15deg] backdrop-blur-sm">LIKE</motion.div>
-      <motion.div style={{ opacity: nopeOp }} className="pointer-events-none absolute right-4 top-4 rounded-lg border-4 border-destructive px-3 py-1 font-bold text-destructive rotate-[15deg] backdrop-blur-sm">NOPE</motion.div>
+      <motion.div style={{ opacity: likeOp }} className="pointer-events-none absolute left-4 top-4 rounded-lg border-4 border-emerald-400 px-3 py-1 font-bold text-emerald-400 rotate-[-15deg]">LIKE</motion.div>
+      <motion.div style={{ opacity: nopeOp }} className="pointer-events-none absolute right-4 top-4 rounded-lg border-4 border-destructive px-3 py-1 font-bold text-destructive rotate-[15deg]">NOPE</motion.div>
     </motion.div>
   );
 }
