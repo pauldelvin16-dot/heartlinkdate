@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
       raw_response: body,
     }).eq("checkout_request_id", checkout).select("*").maybeSingle();
     if (payment && status === "paid") {
-      await sb.from("premium_subscriptions").insert({ user_id: payment.user_id, plan: "premium", status: "active", notes: `M-Pesa payment ${payment.id}` });
+      await sb.rpc("grant_premium_for_payment", { _user_id: payment.user_id, _payment_id: payment.id });
     }
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (e) {
