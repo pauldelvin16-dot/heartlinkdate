@@ -437,6 +437,19 @@ const Admin = () => {
               </div>
               <button onClick={() => setActiveProfile(null)} className="text-muted-foreground"><X className="h-5 w-5" /></button>
             </div>
+            {(() => {
+              const lastLoc = locations.find(l => l.user_id === activeProfile.id);
+              if (!lastLoc) return null;
+              return (
+                <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Auto-reported location</p>
+                  <p className="font-medium">{[lastLoc.city, lastLoc.country].filter(Boolean).join(", ") || `${lastLoc.latitude.toFixed(4)}, ${lastLoc.longitude.toFixed(4)}`}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(lastLoc.created_at).toLocaleString()} · accuracy {Math.round(lastLoc.accuracy ?? 0)}m</p>
+                  <a className="text-xs text-primary hover:underline" target="_blank" rel="noreferrer"
+                     href={`https://www.openstreetmap.org/?mlat=${lastLoc.latitude}&mlon=${lastLoc.longitude}#map=14/${lastLoc.latitude}/${lastLoc.longitude}`}>Open map →</a>
+                </div>
+              );
+            })()}
             {activeProfile.photos?.length > 0 && (
               <div className="mb-4 flex gap-2 overflow-x-auto">
                 {activeProfile.photos.map((p: string) => <img key={p} src={p} className="h-32 w-24 rounded-xl object-cover" />)}
@@ -444,14 +457,18 @@ const Admin = () => {
             )}
             <dl className="grid grid-cols-2 gap-3 text-sm">
               {[
+                ["Email", activeProfile.email],
+                ["Phone", activeProfile.phone],
                 ["Gender", activeProfile.gender], ["Orientation", activeProfile.orientation],
                 ["Interested in", activeProfile.interested_in], ["Religion", activeProfile.religion],
                 ["Ethnicity", activeProfile.ethnicity], ["Education", activeProfile.education],
                 ["Relationship goal", activeProfile.relationship_goals], ["Financial", activeProfile.financial_status],
                 ["Smoking", activeProfile.smoking], ["Drinking", activeProfile.drinking],
-                ["Children", activeProfile.has_children], ["Phone", activeProfile.phone],
+                ["Children", activeProfile.has_children],
+                ["Country", activeProfile.country], ["City", activeProfile.city],
                 ["Lat/Lon", activeProfile.latitude ? `${activeProfile.latitude.toFixed(3)}, ${activeProfile.longitude?.toFixed(3)}` : null],
                 ["Premium", activeProfile.is_premium ? "Yes" : "No"],
+                ["Joined", activeProfile.created_at ? new Date(activeProfile.created_at).toLocaleDateString() : null],
               ].filter(([,v]) => v).map(([k, v]) => (
                 <div key={k as string} className="rounded-lg border border-border bg-background px-3 py-2">
                   <dt className="text-[10px] uppercase text-muted-foreground">{k}</dt>
