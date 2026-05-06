@@ -622,6 +622,7 @@ export type Database = {
           account_reference: string
           amount: number
           description: string
+          environment: string
           is_active: boolean
         }[]
       }
