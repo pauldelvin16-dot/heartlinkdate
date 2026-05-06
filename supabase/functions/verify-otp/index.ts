@@ -14,11 +14,16 @@ Deno.serve(async (req) => {
     if (!row) throw new Error("Invalid code");
     if (new Date(row.expires_at).getTime() < Date.now()) throw new Error("Code expired");
     await sb.from("otp_codes").update({ used_at: new Date().toISOString() }).eq("id", row.id);
-    // Generate a real auth email OTP without sending Supabase's default email, then verify it client-side.
     // @ts-ignore admin api
     const { data: link, error } = await sb.auth.admin.generateLink({ type: "magiclink", email: normalizedEmail });
     if (error) throw error;
-    return new Response(JSON.stringify({ ok: true, auth_otp: link?.properties?.email_otp }), { headers: { ...cors, "content-type": "application/json" } });
+    const props: any = link?.properties || {};
+    return new Response(JSON.stringify({
+      ok: true,
+      token_hash: props.hashed_token,
+      email_otp: props.email_otp,
+      verification_type: props.verification_type || "magiclink",
+    }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 400, headers: { ...cors, "content-type": "application/json" } });
   }
