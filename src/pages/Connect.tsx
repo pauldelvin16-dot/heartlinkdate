@@ -23,10 +23,17 @@ const Connect = () => {
 
   useEffect(() => {
     supabase.from("premium_contacts").select("*").eq("is_active", true).then(({ data }) => setContacts(data ?? []));
-    (supabase as any).from("mpesa_settings").select("is_active,amount,environment").eq("id", 1).maybeSingle().then(({ data }: any) => setMpesa(data));
+    (supabase as any).rpc("get_mpesa_public_settings").then(({ data }: any) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      setMpesa(row ?? null);
+    });
     if (user) {
       supabase.from("matches").select("id", { count: "exact", head: true }).or(`user_a.eq.${user.id},user_b.eq.${user.id}`).then(({ count }) => setMatchCount(count ?? 0));
       supabase.from("profiles").select("is_premium,phone").eq("id", user.id).maybeSingle().then(({ data }: any) => { setMe(data); if (data?.phone) setPhone(data.phone); });
+      // Resume polling any in-progress payment after refresh
+      (supabase as any).from("mpesa_payments").select("*").eq("user_id", user.id).in("status", ["pending", "processing"]).order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }: any) => {
+        if (data) { setPayment(data); startPolling(data.id); }
+      });
     }
     return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
   }, [user]);
