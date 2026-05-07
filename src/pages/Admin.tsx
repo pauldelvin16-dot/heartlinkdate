@@ -459,6 +459,79 @@ const Admin = () => {
               </div>
             </Section>
           )}
+
+          {tab === "packages" && (
+            <Section title="Premium packages" subtitle="Define the plans users can buy via M-Pesa">
+              <div className="grid gap-3 md:grid-cols-2">
+                {packages.map((p) => (
+                  <div key={p.id} className="rounded-xl border border-border bg-background p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold">{p.name} {p.is_popular && <Badge className="ml-1">Popular</Badge>}</p>
+                        <p className="text-xs text-muted-foreground">KES {p.amount} · {p.duration_days} days</p>
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => delPackage(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                    <Field label="Name"><Input value={p.name} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, name: e.target.value } : x))} /></Field>
+                    <Field label="Description"><Textarea rows={2} value={p.description ?? ""} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, description: e.target.value } : x))} /></Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="Amount KES"><Input type="number" value={p.amount} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, amount: e.target.value } : x))} /></Field>
+                      <Field label="Days"><Input type="number" value={p.duration_days} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, duration_days: e.target.value } : x))} /></Field>
+                    </div>
+                    <Field label="Features (comma separated)"><Input value={Array.isArray(p.features) ? p.features.join(", ") : p.features ?? ""} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, features: e.target.value } : x))} /></Field>
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 text-sm"><Switch checked={!!p.is_popular} onCheckedChange={v => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, is_popular: v } : x))} /> Popular</label>
+                      <label className="flex items-center gap-2 text-sm"><Switch checked={p.is_active !== false} onCheckedChange={v => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, is_active: v } : x))} /> Active</label>
+                    </div>
+                    <Button size="sm" onClick={() => savePackage(p)} className="gradient-primary text-primary-foreground w-full"><CheckCircle2 className="mr-1 h-4 w-4" /> Save</Button>
+                  </div>
+                ))}
+
+                <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 space-y-2">
+                  <p className="font-semibold">Add new package</p>
+                  <Field label="Name"><Input value={newPkg.name} onChange={e => setNewPkg({ ...newPkg, name: e.target.value })} /></Field>
+                  <Field label="Description"><Textarea rows={2} value={newPkg.description} onChange={e => setNewPkg({ ...newPkg, description: e.target.value })} /></Field>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Amount KES"><Input type="number" value={newPkg.amount} onChange={e => setNewPkg({ ...newPkg, amount: Number(e.target.value) })} /></Field>
+                    <Field label="Days"><Input type="number" value={newPkg.duration_days} onChange={e => setNewPkg({ ...newPkg, duration_days: Number(e.target.value) })} /></Field>
+                  </div>
+                  <Field label="Features (comma separated)"><Input value={newPkg.features} onChange={e => setNewPkg({ ...newPkg, features: e.target.value })} /></Field>
+                  <label className="flex items-center gap-2 text-sm"><Switch checked={newPkg.is_popular} onCheckedChange={v => setNewPkg({ ...newPkg, is_popular: v })} /> Popular</label>
+                  <Button size="sm" onClick={() => savePackage(newPkg)} className="gradient-primary text-primary-foreground w-full"><Plus className="mr-1 h-4 w-4" /> Add</Button>
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {tab === "requests" && (
+            <Section title="Connection requests" subtitle="Users asking the concierge to connect them with a match">
+              <div className="overflow-hidden rounded-xl border border-border bg-background">
+                {requests.map(r => {
+                  const u = profiles.find(p => p.id === r.user_id);
+                  const t = profiles.find(p => p.id === r.target_id);
+                  return (
+                    <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 last:border-b-0">
+                      <div className="min-w-0 flex-1 text-sm">
+                        <p className="font-medium"><strong>{u?.display_name ?? r.user_id.slice(0, 8)}</strong> wants to connect with <strong>{t?.display_name ?? r.target_id.slice(0, 8)}</strong></p>
+                        <p className="text-xs text-muted-foreground">{u?.email || u?.phone || "—"} → {t?.email || t?.phone || "—"} · {new Date(r.created_at).toLocaleString()}</p>
+                        {r.message && <p className="mt-1 text-xs italic">"{r.message}"</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={r.status === "pending" ? "secondary" : r.status === "approved" ? "default" : "outline"}>{r.status}</Badge>
+                        {r.status === "pending" && (
+                          <>
+                            <Button size="sm" onClick={() => resolveRequest(r, "approved")}><MessageCircle className="mr-1 h-4 w-4" /> Approve</Button>
+                            <Button size="sm" variant="ghost" onClick={() => resolveRequest(r, "declined")}>Decline</Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {requests.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No connection requests yet.</p>}
+              </div>
+            </Section>
+          )}
         </main>
       </div>
 
