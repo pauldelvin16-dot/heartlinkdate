@@ -13,6 +13,7 @@ import Matches from "./pages/Matches";
 import Connect from "./pages/Connect";
 import ProfilePage from "./pages/Profile";
 import Admin from "./pages/Admin";
+import Chat from "./pages/Chat";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound.tsx";
 import { TopNav } from "./components/TopNav";
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/discover" element={<ProtectedRoute><Discover /></ProtectedRoute>} />
           <Route path="/matches" element={<ProtectedRoute><Matches /></ProtectedRoute>} />
           <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
+          <Route path="/chat/:matchId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
