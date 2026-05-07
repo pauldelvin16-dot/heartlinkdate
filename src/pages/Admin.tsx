@@ -61,7 +61,7 @@ const Admin = () => {
   useEffect(() => { reload(); }, []);
 
   async function reload() {
-    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1] = await Promise.all([
+    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1] = await Promise.all([
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("smtp_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("premium_contacts").select("*").order("created_at", { ascending: false }),
@@ -71,11 +71,14 @@ const Admin = () => {
       supabase.from("user_locations").select("*").order("created_at", { ascending: false }).limit(200),
       (supabase as any).from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
       (supabase as any).from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
+      (supabase as any).from("mpesa_packages").select("*").order("sort_order"),
+      (supabase as any).from("connection_requests").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
     setLocations(l1.data ?? []);
     setMpesa(mp1.data); setPayments(pay1.data ?? []);
+    setPackages(pkg1.data ?? []); setRequests(req1.data ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
