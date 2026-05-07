@@ -47,10 +47,14 @@ const Admin = () => {
   const [locations, setLocations] = useState<any[]>([]);
   const [mpesa, setMpesa] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
+  const [grantDays, setGrantDays] = useState(30);
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
+  const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
   const [testTo, setTestTo] = useState("");
   const [newCountry, setNewCountry] = useState("");
 
