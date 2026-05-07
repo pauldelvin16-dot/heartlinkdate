@@ -36,16 +36,18 @@ Deno.serve(async (req) => {
     const auth = await authed(req).auth.getUser();
     const user = auth.data.user;
     if (!user) throw new Error("Sign in required");
-    const { phone } = await req.json().catch(() => ({}));
+    const { phone, package_id } = await req.json().catch(() => ({}));
     const sb = admin();
-    const [{ data: settings }, { data: profile }] = await Promise.all([
+    const [{ data: settings }, { data: profile }, { data: pkg }] = await Promise.all([
       sb.from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
       sb.from("profiles").select("phone").eq("id", user.id).maybeSingle(),
+      package_id ? sb.from("mpesa_packages").select("*").eq("id", package_id).eq("is_active", true).maybeSingle() : Promise.resolve({ data: null }),
     ]);
     if (!settings?.is_active) throw new Error("M-Pesa is not enabled by the admin yet");
     if (!settings.consumer_key || !settings.consumer_secret || !settings.pass_key || !settings.shortcode) throw new Error("M-Pesa admin settings are incomplete");
     const mpesaPhone = normalizePhone(phone || profile?.phone || "");
-    const amount = Number(settings.amount || 1);
+    const amount = Number(pkg?.amount ?? settings.amount ?? 1);
+    const duration_days = Number(pkg?.duration_days ?? 30);
     const base = settings.environment === "production" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
     const ts = timestamp();
     const password = btoa(`${settings.shortcode}${settings.pass_key}${ts}`);
@@ -75,6 +77,8 @@ Deno.serve(async (req) => {
       user_id: user.id,
       phone: mpesaPhone,
       amount,
+      package_id: pkg?.id ?? null,
+      duration_days,
       status: "processing",
       checkout_request_id: raw.CheckoutRequestID,
       merchant_request_id: raw.MerchantRequestID,

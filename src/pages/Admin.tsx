@@ -13,10 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
-  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone,
+  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -28,6 +28,8 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "matches", label: "Matches", icon: Heart },
   { key: "locations", label: "Locations", icon: MapPin },
   { key: "mpesa", label: "M-Pesa", icon: Smartphone },
+  { key: "packages", label: "Packages", icon: Package },
+  { key: "requests", label: "Connection requests", icon: Inbox },
 ];
 
 const Admin = () => {
@@ -45,17 +47,21 @@ const Admin = () => {
   const [locations, setLocations] = useState<any[]>([]);
   const [mpesa, setMpesa] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
+  const [grantDays, setGrantDays] = useState(30);
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
+  const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
   const [testTo, setTestTo] = useState("");
   const [newCountry, setNewCountry] = useState("");
 
   useEffect(() => { reload(); }, []);
 
   async function reload() {
-    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1] = await Promise.all([
+    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1] = await Promise.all([
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("smtp_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("premium_contacts").select("*").order("created_at", { ascending: false }),
@@ -65,11 +71,14 @@ const Admin = () => {
       supabase.from("user_locations").select("*").order("created_at", { ascending: false }).limit(200),
       (supabase as any).from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
       (supabase as any).from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
+      (supabase as any).from("mpesa_packages").select("*").order("sort_order"),
+      (supabase as any).from("connection_requests").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
     setLocations(l1.data ?? []);
     setMpesa(mp1.data); setPayments(pay1.data ?? []);
+    setPackages(pkg1.data ?? []); setRequests(req1.data ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
@@ -142,14 +151,41 @@ const Admin = () => {
     if (error) return toast.error(error.message);
     toast.success("You're now admin"); setTimeout(() => location.reload(), 600);
   }
-  async function togglePremium(id: string, makePremium: boolean) {
+  async function togglePremium(id: string, makePremium: boolean, days = 30) {
     if (makePremium) {
-      const { error } = await supabase.from("premium_subscriptions").insert({ user_id: id, plan: "premium", status: "active" });
+      const { error } = await (supabase as any).rpc("grant_premium_manual", { _user_id: id, _days: days, _note: "admin grant" });
       if (error) return toast.error(error.message);
     } else {
-      await supabase.from("premium_subscriptions").update({ status: "cancelled" }).eq("user_id", id).eq("status", "active");
+      await supabase.from("premium_subscriptions").update({ status: "cancelled", expires_at: new Date().toISOString() }).eq("user_id", id).eq("status", "active");
+      await supabase.from("profiles").update({ is_premium: false }).eq("id", id);
     }
     toast.success("Updated"); reload();
+  }
+  async function savePackage(p: any) {
+    const features = typeof p.features === "string" ? p.features.split(",").map((x: string) => x.trim()).filter(Boolean) : (p.features ?? []);
+    const payload = { name: p.name, description: p.description, amount: Number(p.amount), duration_days: Number(p.duration_days), features, is_popular: !!p.is_popular, is_active: p.is_active ?? true, sort_order: Number(p.sort_order ?? 0) };
+    if (p.id) {
+      const { error } = await (supabase as any).from("mpesa_packages").update(payload).eq("id", p.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await (supabase as any).from("mpesa_packages").insert(payload);
+      if (error) return toast.error(error.message);
+      setNewPkg({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
+    }
+    toast.success("Package saved"); reload();
+  }
+  async function delPackage(id: string) { await (supabase as any).from("mpesa_packages").delete().eq("id", id); reload(); }
+  async function resolveRequest(r: any, status: "approved" | "declined") {
+    if (status === "approved") {
+      const { data: m } = await supabase.from("matches").select("*").eq("id", r.match_id).maybeSingle();
+      if (m) {
+        const a = [m.user_a, m.user_b].sort()[0];
+        const b = [m.user_a, m.user_b].sort()[1];
+        await (supabase as any).from("admin_connections").upsert({ user_a: a, user_b: b, granted_by: user?.id }, { onConflict: "user_a,user_b" });
+      }
+    }
+    await (supabase as any).from("connection_requests").update({ status, resolved_at: new Date().toISOString() }).eq("id", r.id);
+    toast.success(`Request ${status}`); reload();
   }
   async function toggleActive(id: string, active: boolean) {
     await supabase.from("profiles").update({ is_active: active }).eq("id", id);
@@ -423,6 +459,79 @@ const Admin = () => {
               </div>
             </Section>
           )}
+
+          {tab === "packages" && (
+            <Section title="Premium packages" subtitle="Define the plans users can buy via M-Pesa">
+              <div className="grid gap-3 md:grid-cols-2">
+                {packages.map((p) => (
+                  <div key={p.id} className="rounded-xl border border-border bg-background p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold">{p.name} {p.is_popular && <Badge className="ml-1">Popular</Badge>}</p>
+                        <p className="text-xs text-muted-foreground">KES {p.amount} · {p.duration_days} days</p>
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => delPackage(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                    <Field label="Name"><Input value={p.name} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, name: e.target.value } : x))} /></Field>
+                    <Field label="Description"><Textarea rows={2} value={p.description ?? ""} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, description: e.target.value } : x))} /></Field>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="Amount KES"><Input type="number" value={p.amount} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, amount: e.target.value } : x))} /></Field>
+                      <Field label="Days"><Input type="number" value={p.duration_days} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, duration_days: e.target.value } : x))} /></Field>
+                    </div>
+                    <Field label="Features (comma separated)"><Input value={Array.isArray(p.features) ? p.features.join(", ") : p.features ?? ""} onChange={e => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, features: e.target.value } : x))} /></Field>
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 text-sm"><Switch checked={!!p.is_popular} onCheckedChange={v => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, is_popular: v } : x))} /> Popular</label>
+                      <label className="flex items-center gap-2 text-sm"><Switch checked={p.is_active !== false} onCheckedChange={v => setPackages(packages.map((x: any) => x.id === p.id ? { ...x, is_active: v } : x))} /> Active</label>
+                    </div>
+                    <Button size="sm" onClick={() => savePackage(p)} className="gradient-primary text-primary-foreground w-full"><CheckCircle2 className="mr-1 h-4 w-4" /> Save</Button>
+                  </div>
+                ))}
+
+                <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 space-y-2">
+                  <p className="font-semibold">Add new package</p>
+                  <Field label="Name"><Input value={newPkg.name} onChange={e => setNewPkg({ ...newPkg, name: e.target.value })} /></Field>
+                  <Field label="Description"><Textarea rows={2} value={newPkg.description} onChange={e => setNewPkg({ ...newPkg, description: e.target.value })} /></Field>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Amount KES"><Input type="number" value={newPkg.amount} onChange={e => setNewPkg({ ...newPkg, amount: Number(e.target.value) })} /></Field>
+                    <Field label="Days"><Input type="number" value={newPkg.duration_days} onChange={e => setNewPkg({ ...newPkg, duration_days: Number(e.target.value) })} /></Field>
+                  </div>
+                  <Field label="Features (comma separated)"><Input value={newPkg.features} onChange={e => setNewPkg({ ...newPkg, features: e.target.value })} /></Field>
+                  <label className="flex items-center gap-2 text-sm"><Switch checked={newPkg.is_popular} onCheckedChange={v => setNewPkg({ ...newPkg, is_popular: v })} /> Popular</label>
+                  <Button size="sm" onClick={() => savePackage(newPkg)} className="gradient-primary text-primary-foreground w-full"><Plus className="mr-1 h-4 w-4" /> Add</Button>
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {tab === "requests" && (
+            <Section title="Connection requests" subtitle="Users asking the concierge to connect them with a match">
+              <div className="overflow-hidden rounded-xl border border-border bg-background">
+                {requests.map(r => {
+                  const u = profiles.find(p => p.id === r.user_id);
+                  const t = profiles.find(p => p.id === r.target_id);
+                  return (
+                    <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-3 last:border-b-0">
+                      <div className="min-w-0 flex-1 text-sm">
+                        <p className="font-medium"><strong>{u?.display_name ?? r.user_id.slice(0, 8)}</strong> wants to connect with <strong>{t?.display_name ?? r.target_id.slice(0, 8)}</strong></p>
+                        <p className="text-xs text-muted-foreground">{u?.email || u?.phone || "—"} → {t?.email || t?.phone || "—"} · {new Date(r.created_at).toLocaleString()}</p>
+                        {r.message && <p className="mt-1 text-xs italic">"{r.message}"</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={r.status === "pending" ? "secondary" : r.status === "approved" ? "default" : "outline"}>{r.status}</Badge>
+                        {r.status === "pending" && (
+                          <>
+                            <Button size="sm" onClick={() => resolveRequest(r, "approved")}><MessageCircle className="mr-1 h-4 w-4" /> Approve</Button>
+                            <Button size="sm" variant="ghost" onClick={() => resolveRequest(r, "declined")}>Decline</Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {requests.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No connection requests yet.</p>}
+              </div>
+            </Section>
+          )}
         </main>
       </div>
 
@@ -484,14 +593,22 @@ const Admin = () => {
               </div>
             ) : null}
             {!activeProfile.is_simulated && (
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Button size="sm" variant={activeProfile.is_premium ? "outline" : "default"}
-                  onClick={() => togglePremium(activeProfile.id, !activeProfile.is_premium)}>
-                  <Crown className="mr-1 h-4 w-4" /> {activeProfile.is_premium ? "Revoke premium" : "Grant premium"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => toggleActive(activeProfile.id, !activeProfile.is_active)}>
-                  {activeProfile.is_active ? "Hide profile" : "Activate"}
-                </Button>
+              <div className="mt-5 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Label className="text-xs">Days</Label>
+                  <Input type="number" min={1} value={grantDays} onChange={e => setGrantDays(Number(e.target.value) || 30)} className="h-9 w-20" />
+                  <Button size="sm" onClick={() => togglePremium(activeProfile.id, true, grantDays)}>
+                    <Crown className="mr-1 h-4 w-4" /> Grant {grantDays}d premium
+                  </Button>
+                  {activeProfile.is_premium && (
+                    <Button size="sm" variant="outline" onClick={() => togglePremium(activeProfile.id, false)}>
+                      Revoke premium
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => toggleActive(activeProfile.id, !activeProfile.is_active)}>
+                    {activeProfile.is_active ? "Hide profile" : "Activate"}
+                  </Button>
+                </div>
               </div>
             )}
           </div>

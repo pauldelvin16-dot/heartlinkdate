@@ -13,7 +13,7 @@ const items = [
 export function BottomNav() {
   const { isAdmin } = useAuth();
   const loc = useLocation();
-  if (loc.pathname === "/" || loc.pathname.startsWith("/auth") || loc.pathname.startsWith("/onboarding") || loc.pathname.startsWith("/admin")) return null;
+  if (loc.pathname === "/" || loc.pathname.startsWith("/auth") || loc.pathname.startsWith("/onboarding") || loc.pathname.startsWith("/admin") || loc.pathname.startsWith("/chat")) return null;
   const nav = isAdmin ? [...items, { to: "/admin", icon: Shield, label: "Admin" }] : items;
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/90 backdrop-blur-lg safe-bottom md:hidden">
