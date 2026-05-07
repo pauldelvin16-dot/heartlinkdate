@@ -593,14 +593,22 @@ const Admin = () => {
               </div>
             ) : null}
             {!activeProfile.is_simulated && (
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Button size="sm" variant={activeProfile.is_premium ? "outline" : "default"}
-                  onClick={() => togglePremium(activeProfile.id, !activeProfile.is_premium)}>
-                  <Crown className="mr-1 h-4 w-4" /> {activeProfile.is_premium ? "Revoke premium" : "Grant premium"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => toggleActive(activeProfile.id, !activeProfile.is_active)}>
-                  {activeProfile.is_active ? "Hide profile" : "Activate"}
-                </Button>
+              <div className="mt-5 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Label className="text-xs">Days</Label>
+                  <Input type="number" min={1} value={grantDays} onChange={e => setGrantDays(Number(e.target.value) || 30)} className="h-9 w-20" />
+                  <Button size="sm" onClick={() => togglePremium(activeProfile.id, true, grantDays)}>
+                    <Crown className="mr-1 h-4 w-4" /> Grant {grantDays}d premium
+                  </Button>
+                  {activeProfile.is_premium && (
+                    <Button size="sm" variant="outline" onClick={() => togglePremium(activeProfile.id, false)}>
+                      Revoke premium
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => toggleActive(activeProfile.id, !activeProfile.is_active)}>
+                    {activeProfile.is_active ? "Hide profile" : "Activate"}
+                  </Button>
+                </div>
               </div>
             )}
           </div>
