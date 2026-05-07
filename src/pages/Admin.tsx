@@ -151,14 +151,41 @@ const Admin = () => {
     if (error) return toast.error(error.message);
     toast.success("You're now admin"); setTimeout(() => location.reload(), 600);
   }
-  async function togglePremium(id: string, makePremium: boolean) {
+  async function togglePremium(id: string, makePremium: boolean, days = 30) {
     if (makePremium) {
-      const { error } = await supabase.from("premium_subscriptions").insert({ user_id: id, plan: "premium", status: "active" });
+      const { error } = await (supabase as any).rpc("grant_premium_manual", { _user_id: id, _days: days, _note: "admin grant" });
       if (error) return toast.error(error.message);
     } else {
-      await supabase.from("premium_subscriptions").update({ status: "cancelled" }).eq("user_id", id).eq("status", "active");
+      await supabase.from("premium_subscriptions").update({ status: "cancelled", expires_at: new Date().toISOString() }).eq("user_id", id).eq("status", "active");
+      await supabase.from("profiles").update({ is_premium: false }).eq("id", id);
     }
     toast.success("Updated"); reload();
+  }
+  async function savePackage(p: any) {
+    const features = typeof p.features === "string" ? p.features.split(",").map((x: string) => x.trim()).filter(Boolean) : (p.features ?? []);
+    const payload = { name: p.name, description: p.description, amount: Number(p.amount), duration_days: Number(p.duration_days), features, is_popular: !!p.is_popular, is_active: p.is_active ?? true, sort_order: Number(p.sort_order ?? 0) };
+    if (p.id) {
+      const { error } = await (supabase as any).from("mpesa_packages").update(payload).eq("id", p.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await (supabase as any).from("mpesa_packages").insert(payload);
+      if (error) return toast.error(error.message);
+      setNewPkg({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
+    }
+    toast.success("Package saved"); reload();
+  }
+  async function delPackage(id: string) { await (supabase as any).from("mpesa_packages").delete().eq("id", id); reload(); }
+  async function resolveRequest(r: any, status: "approved" | "declined") {
+    if (status === "approved") {
+      const { data: m } = await supabase.from("matches").select("*").eq("id", r.match_id).maybeSingle();
+      if (m) {
+        const a = [m.user_a, m.user_b].sort()[0];
+        const b = [m.user_a, m.user_b].sort()[1];
+        await (supabase as any).from("admin_connections").upsert({ user_a: a, user_b: b, granted_by: user?.id }, { onConflict: "user_a,user_b" });
+      }
+    }
+    await (supabase as any).from("connection_requests").update({ status, resolved_at: new Date().toISOString() }).eq("id", r.id);
+    toast.success(`Request ${status}`); reload();
   }
   async function toggleActive(id: string, active: boolean) {
     await supabase.from("profiles").update({ is_active: active }).eq("id", id);
