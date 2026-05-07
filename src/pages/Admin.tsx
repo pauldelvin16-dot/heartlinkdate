@@ -13,10 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
-  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone,
+  Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -28,6 +28,8 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "matches", label: "Matches", icon: Heart },
   { key: "locations", label: "Locations", icon: MapPin },
   { key: "mpesa", label: "M-Pesa", icon: Smartphone },
+  { key: "packages", label: "Packages", icon: Package },
+  { key: "requests", label: "Connection requests", icon: Inbox },
 ];
 
 const Admin = () => {
