@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_connections: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_by: string | null
+          id: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          id?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          id?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
+      connection_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          match_id: string
+          message: string | null
+          resolved_at: string | null
+          status: string
+          target_id: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          match_id: string
+          message?: string | null
+          resolved_at?: string | null
+          status?: string
+          target_id: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string
+          message?: string | null
+          resolved_at?: string | null
+          status?: string
+          target_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_requests_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           html: string
@@ -77,13 +148,98 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          match_id: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          match_id: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          match_id?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mpesa_packages: {
+        Row: {
+          amount: number
+          created_at: string
+          daily_swipe_limit: number | null
+          description: string | null
+          duration_days: number
+          features: string[] | null
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          daily_swipe_limit?: number | null
+          description?: string | null
+          duration_days?: number
+          features?: string[] | null
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          daily_swipe_limit?: number | null
+          description?: string | null
+          duration_days?: number
+          features?: string[] | null
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mpesa_payments: {
         Row: {
           amount: number
           checkout_request_id: string | null
           created_at: string
+          duration_days: number
           id: string
           merchant_request_id: string | null
+          package_id: string | null
           phone: string
           raw_response: Json | null
           result_code: string | null
@@ -96,8 +252,10 @@ export type Database = {
           amount: number
           checkout_request_id?: string | null
           created_at?: string
+          duration_days?: number
           id?: string
           merchant_request_id?: string | null
+          package_id?: string | null
           phone: string
           raw_response?: Json | null
           result_code?: string | null
@@ -110,8 +268,10 @@ export type Database = {
           amount?: number
           checkout_request_id?: string | null
           created_at?: string
+          duration_days?: number
           id?: string
           merchant_request_id?: string | null
+          package_id?: string | null
           phone?: string
           raw_response?: Json | null
           result_code?: string | null
@@ -612,6 +772,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_message: { Args: { _a: string; _b: string }; Returns: boolean }
       create_simulated_match: {
         Args: { _target_id: string; _user_id: string }
         Returns: Json
@@ -625,6 +786,14 @@ export type Database = {
           environment: string
           is_active: boolean
         }[]
+      }
+      grant_premium_for_payment: {
+        Args: { _payment_id: string; _user_id: string }
+        Returns: undefined
+      }
+      grant_premium_manual: {
+        Args: { _days: number; _note?: string; _user_id: string }
+        Returns: undefined
       }
       has_role: {
         Args: {
