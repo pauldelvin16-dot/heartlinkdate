@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_clicks: {
+        Row: {
+          ad_id: string
+          created_at: string
+          id: string
+          reward_granted: number
+          user_id: string
+        }
+        Insert: {
+          ad_id: string
+          created_at?: string
+          id?: string
+          reward_granted?: number
+          user_id: string
+        }
+        Update: {
+          ad_id?: string
+          created_at?: string
+          id?: string
+          reward_granted?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_clicks_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_connections: {
         Row: {
           created_at: string
@@ -38,6 +70,60 @@ export type Database = {
           id?: string
           user_a?: string
           user_b?: string
+        }
+        Relationships: []
+      }
+      ads: {
+        Row: {
+          body: string | null
+          created_at: string
+          cta_text: string | null
+          ends_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link_url: string | null
+          placement: string
+          reward_swipes: number
+          starts_at: string | null
+          title: string
+          updated_at: string
+          video_url: string | null
+          weight: number
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          cta_text?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          placement?: string
+          reward_swipes?: number
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+          video_url?: string | null
+          weight?: number
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          cta_text?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          placement?: string
+          reward_swipes?: number
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+          weight?: number
         }
         Relationships: []
       }
@@ -324,6 +410,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string | null
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       otp_codes: {
         Row: {
           code_hash: string
@@ -455,6 +574,7 @@ export type Database = {
           age: number | null
           age_group: string | null
           bio: string | null
+          bonus_swipes: number
           city: string | null
           conditions: string[] | null
           country: string | null
@@ -500,6 +620,7 @@ export type Database = {
           age?: number | null
           age_group?: string | null
           bio?: string | null
+          bonus_swipes?: number
           city?: string | null
           conditions?: string[] | null
           country?: string | null
@@ -545,6 +666,7 @@ export type Database = {
           age?: number | null
           age_group?: string | null
           bio?: string | null
+          bonus_swipes?: number
           city?: string | null
           conditions?: string[] | null
           country?: string | null
@@ -588,15 +710,53 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
+          ads_enabled: boolean
           allowed_country_codes: string[]
+          canonical_url: string | null
           contact_email: string | null
           contact_whatsapp: string | null
           enable_2fa_email: boolean
           enable_otp_login: boolean
+          favicon_url: string | null
+          google_site_verification: string | null
           id: number
           logo_url: string | null
+          meta_description: string | null
+          meta_keywords: string | null
+          meta_title: string | null
+          og_image_url: string | null
           premium_message: string | null
           primary_color: string | null
           site_name: string
@@ -604,13 +764,21 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ads_enabled?: boolean
           allowed_country_codes?: string[]
+          canonical_url?: string | null
           contact_email?: string | null
           contact_whatsapp?: string | null
           enable_2fa_email?: boolean
           enable_otp_login?: boolean
+          favicon_url?: string | null
+          google_site_verification?: string | null
           id?: number
           logo_url?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           premium_message?: string | null
           primary_color?: string | null
           site_name?: string
@@ -618,13 +786,21 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ads_enabled?: boolean
           allowed_country_codes?: string[]
+          canonical_url?: string | null
           contact_email?: string | null
           contact_whatsapp?: string | null
           enable_2fa_email?: boolean
           enable_otp_login?: boolean
+          favicon_url?: string | null
+          google_site_verification?: string | null
           id?: number
           logo_url?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
           premium_message?: string | null
           primary_color?: string | null
           site_name?: string
@@ -773,6 +949,8 @@ export type Database = {
     }
     Functions: {
       can_message: { Args: { _a: string; _b: string }; Returns: boolean }
+      click_ad: { Args: { _ad_id: string }; Returns: number }
+      consume_bonus_swipe: { Args: never; Returns: boolean }
       create_simulated_match: {
         Args: { _target_id: string; _user_id: string }
         Returns: Json
@@ -822,6 +1000,7 @@ export type Database = {
           score: number
         }[]
       }
+      unread_counts: { Args: { _user_id: string }; Returns: Json }
       upsert_swipe: {
         Args: { _liked: boolean; _swiper_id: string; _target_id: string }
         Returns: Json
