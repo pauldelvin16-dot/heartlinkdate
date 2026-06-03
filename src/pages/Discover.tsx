@@ -11,6 +11,8 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { COUNTRIES, FINANCIAL_OPTS, FREE_DAILY_SWIPES } from "@/lib/constants";
+import { AdBanner } from "@/components/AdBanner";
+import { ensureNotificationPermission } from "@/hooks/useUnreadCounts";
 
 interface Profile {
   id: string;
@@ -118,10 +120,14 @@ const Discover = () => {
 
   const top = profiles[0];
   const next = profiles[1];
-  const swipesLeft = isPremium ? Infinity : Math.max(0, FREE_DAILY_SWIPES - getTodaySwipes());
+  const bonus = Number(me?.bonus_swipes ?? 0);
+  const swipesLeft = isPremium ? Infinity : Math.max(0, FREE_DAILY_SWIPES - getTodaySwipes()) + bonus;
+
+  useEffect(() => { ensureNotificationPermission(); }, []);
 
   return (
     <div className="container max-w-md py-4 pb-24 md:pb-8">
+      <AdBanner onReward={() => load()} />
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Discover</h1>

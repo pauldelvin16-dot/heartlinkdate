@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { COUNTRIES } from "@/lib/constants";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { toast } from "sonner";
-import { Heart, Mail } from "lucide-react";
+import { Heart, Mail, MailCheck, Loader2 } from "lucide-react";
 
 function makeSignupSchema(allowed: string[]) {
   return z.object({
@@ -20,11 +20,7 @@ function makeSignupSchema(allowed: string[]) {
     phone: z.string().trim().regex(/^\d{6,14}$/, "Phone digits only (no spaces)"),
   });
 }
-
-const loginSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(1),
-});
+const loginSchema = z.object({ email: z.string().trim().email(), password: z.string().min(1) });
 
 const Auth = () => {
   const [params] = useSearchParams();
@@ -35,10 +31,38 @@ const Auth = () => {
   const [otpStage, setOtpStage] = useState<"send" | "verify">("send");
   const [otpCode, setOtpCode] = useState("");
   const [form, setForm] = useState({ email: "", password: "", displayName: "", dial: "+44", phone: "" });
+  const [awaitingVerification, setAwaitingVerification] = useState<string | null>(() => localStorage.getItem("hl_pending_verify"));
+  const [polling, setPolling] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { if (data.session) nav("/discover"); });
   }, [nav]);
+
+  // Poll verification when awaiting
+  useEffect(() => {
+    if (!awaitingVerification) return;
+    setPolling(true);
+    const t = setInterval(async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        clearInterval(t);
+        localStorage.removeItem("hl_pending_verify");
+        setPolling(false);
+        nav("/onboarding");
+      }
+    }, 3000);
+    return () => { clearInterval(t); setPolling(false); };
+  }, [awaitingVerification, nav]);
+
+  async function resendVerification() {
+    if (!awaitingVerification) return;
+    const { error } = await supabase.auth.resend({ type: "signup", email: awaitingVerification, options: { emailRedirectTo: `${window.location.origin}/onboarding` } });
+    if (error) toast.error(error.message); else toast.success("Verification email re-sent");
+  }
+  function cancelVerification() {
+    localStorage.removeItem("hl_pending_verify");
+    setAwaitingVerification(null);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +73,7 @@ const Auth = () => {
         const parsed = makeSignupSchema(allowed).safeParse(form);
         if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
         const phoneFull = `${form.dial}${form.phone}`;
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: form.email,
           password: form.password,
           options: {
@@ -58,17 +82,28 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        const { data: u } = await supabase.auth.getUser();
-        if (u.user) await supabase.from("profiles").update({ phone: phoneFull }).eq("id", u.user.id);
-        // Send branded welcome email via SMTP if configured (best-effort)
-        supabase.functions.invoke("welcome-email", { body: { to: form.email, name: form.displayName } }).catch(() => {});
-        toast.success("Account created! Let's set up your profile.");
-        nav("/onboarding");
+        supabase.functions.invoke("welcome-email", { body: { to: form.email, name: form.displayName, verify_url: `${window.location.origin}/onboarding` } }).catch(() => {});
+        if (data.session) {
+          toast.success("Account created!");
+          nav("/onboarding");
+        } else {
+          localStorage.setItem("hl_pending_verify", form.email);
+          setAwaitingVerification(form.email);
+          toast.success("Check your inbox to verify your email");
+        }
       } else if (mode === "login") {
         const parsed = loginSchema.safeParse(form);
         if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
         const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
-        if (error) throw error;
+        if (error) {
+          if (error.message.toLowerCase().includes("not confirmed") || error.message.toLowerCase().includes("verify")) {
+            localStorage.setItem("hl_pending_verify", form.email);
+            setAwaitingVerification(form.email);
+            toast.error("Please verify your email — we'll keep waiting here.");
+            return;
+          }
+          throw error;
+        }
         nav("/discover");
       } else if (mode === "otp") {
         if (otpStage === "send") {
@@ -91,9 +126,32 @@ const Auth = () => {
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
-    } finally {
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
+  }
+
+  if (awaitingVerification) {
+    return (
+      <div className="min-h-screen gradient-soft px-4 py-16">
+        <div className="mx-auto max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-card">
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full gradient-primary text-primary-foreground shadow-glow">
+            <MailCheck className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl font-bold">Verify your email</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We sent a verification link to <strong className="text-foreground">{awaitingVerification}</strong>.
+            Click the link in that email to activate your account — this page will continue automatically.
+          </p>
+          {polling && (
+            <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-primary"><Loader2 className="h-3 w-3 animate-spin" /> Watching for verification…</p>
+          )}
+          <div className="mt-6 flex flex-col gap-2">
+            <Button onClick={resendVerification} variant="outline">Resend email</Button>
+            <Button onClick={cancelVerification} variant="ghost" className="text-muted-foreground">Use a different email</Button>
+          </div>
+          <p className="mt-4 text-[11px] text-muted-foreground">Stay on this page — closing it is fine, the link in your email will still work.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -106,43 +164,27 @@ const Auth = () => {
           <span className="font-display text-2xl font-bold">{s?.site_name ?? "HeartLink"}</span>
         </Link>
         <div className="rounded-3xl border border-border bg-card p-6 shadow-card sm:p-8">
-          <h1 className="mb-1 text-2xl font-bold">
-            {mode === "signup" ? "Create account" : mode === "otp" ? "Sign in with code" : "Welcome back"}
-          </h1>
-          <p className="mb-6 text-sm text-muted-foreground">
-            {mode === "signup" ? "Available in UK, Europe, USA & Australia." : mode === "otp" ? "We'll email you a one-time code." : "Sign in to keep finding your spark."}
-          </p>
+          <h1 className="mb-1 text-2xl font-bold">{mode === "signup" ? "Create account" : mode === "otp" ? "Sign in with code" : "Welcome back"}</h1>
+          <p className="mb-6 text-sm text-muted-foreground">{mode === "signup" ? "We'll send a verification link to your email." : mode === "otp" ? "We'll email you a one-time code." : "Sign in to keep finding your spark."}</p>
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
-              <div>
-                <Label htmlFor="dn">Display name</Label>
-                <Input id="dn" value={form.displayName} onChange={e => setForm({ ...form, displayName: e.target.value })} required />
-              </div>
+              <div><Label htmlFor="dn">Display name</Label><Input id="dn" value={form.displayName} onChange={e => setForm({ ...form, displayName: e.target.value })} required /></div>
             )}
-            <div>
-              <Label htmlFor="em">Email</Label>
-              <Input id="em" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
-            </div>
+            <div><Label htmlFor="em">Email</Label><Input id="em" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required /></div>
             {mode !== "otp" && (
-              <div>
-                <Label htmlFor="pw">Password</Label>
-                <Input id="pw" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={mode === "signup" ? 8 : 1} />
-              </div>
+              <div><Label htmlFor="pw">Password</Label><Input id="pw" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required minLength={mode === "signup" ? 8 : 1} /></div>
             )}
             {mode === "otp" && otpStage === "verify" && (
-              <div>
-                <Label>6-digit code</Label>
-                <Input inputMode="numeric" maxLength={6} value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))} required />
-              </div>
+              <div><Label>6-digit code</Label><Input inputMode="numeric" maxLength={6} value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))} required /></div>
             )}
             {mode === "signup" && (
               <div>
-                <Label>Phone (UK, EU, USA, AU only)</Label>
+                <Label>Phone</Label>
                 <div className="mt-1 flex gap-2">
                   <Select value={form.dial} onValueChange={v => setForm({ ...form, dial: v })}>
-                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {COUNTRIES.filter(c => !s?.allowed_country_codes?.length || s.allowed_country_codes.includes(c.dial)).map(c => <SelectItem key={c.code} value={c.dial}>{c.dial} {c.code}</SelectItem>)}
+                    <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {COUNTRIES.filter(c => !s?.allowed_country_codes?.length || s.allowed_country_codes.includes(c.dial)).map(c => <SelectItem key={c.code+c.dial} value={c.dial}>{c.dial} {c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Input placeholder="7700900123" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })} required />
