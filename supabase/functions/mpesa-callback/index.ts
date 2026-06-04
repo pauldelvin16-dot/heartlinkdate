@@ -10,19 +10,17 @@ Deno.serve(async (req) => {
     const cb = body?.Body?.stkCallback;
     const checkout = cb?.CheckoutRequestID;
     if (!checkout) throw new Error("Missing CheckoutRequestID");
-    const status = String(cb.ResultCode) === "0" ? "paid" : "failed";
     const sb = admin();
-    const { data: payment } = await sb.from("mpesa_payments").update({
-      status,
-      result_code: String(cb.ResultCode ?? ""),
-      result_desc: cb.ResultDesc || null,
-      raw_response: body,
-    }).eq("checkout_request_id", checkout).select("*").maybeSingle();
-    if (payment && status === "paid") {
-      await sb.rpc("grant_premium_for_payment", { _user_id: payment.user_id, _payment_id: payment.id });
-    }
+    // Atomic + idempotent: locks row, marks status, grants premium only once.
+    await sb.rpc("mpesa_mark_paid_and_grant", {
+      _checkout_id: checkout,
+      _result_code: String(cb.ResultCode ?? ""),
+      _result_desc: cb.ResultDesc || null,
+      _raw: body,
+    });
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (e) {
+    // Always 200 to Safaricom so they don't retry-storm — we logged what we needed.
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: (e as Error).message }), { headers: { ...cors, "content-type": "application/json" } });
   }
 });
