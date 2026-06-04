@@ -611,6 +611,7 @@ export type Database = {
           preferred_orientations: string[] | null
           preferred_relationship_goals: string[] | null
           preferred_religions: string[] | null
+          region: string | null
           relationship_goals: string | null
           religion: string | null
           smoking: string | null
@@ -657,6 +658,7 @@ export type Database = {
           preferred_orientations?: string[] | null
           preferred_relationship_goals?: string[] | null
           preferred_religions?: string[] | null
+          region?: string | null
           relationship_goals?: string | null
           religion?: string | null
           smoking?: string | null
@@ -703,6 +705,7 @@ export type Database = {
           preferred_orientations?: string[] | null
           preferred_relationship_goals?: string[] | null
           preferred_religions?: string[] | null
+          region?: string | null
           relationship_goals?: string | null
           religion?: string | null
           smoking?: string | null
@@ -979,6 +982,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      mpesa_mark_paid_and_grant: {
+        Args: {
+          _checkout_id: string
+          _raw: Json
+          _result_code: string
+          _result_desc: string
+        }
+        Returns: undefined
       }
       recommend_profiles: {
         Args: { _limit?: number; _user_id: string }
