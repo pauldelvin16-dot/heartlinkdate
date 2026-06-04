@@ -14,9 +14,10 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
   Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
+  Megaphone, Image as ImageIcon, Video, Sparkles,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests" | "ads" | "seo";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -30,6 +31,8 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "mpesa", label: "M-Pesa", icon: Smartphone },
   { key: "packages", label: "Packages", icon: Package },
   { key: "requests", label: "Connection requests", icon: Inbox },
+  { key: "ads", label: "Ads", icon: Megaphone },
+  { key: "seo", label: "SEO", icon: Sparkles },
 ];
 
 const Admin = () => {
@@ -52,6 +55,8 @@ const Admin = () => {
   const [search, setSearch] = useState("");
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
   const [grantDays, setGrantDays] = useState(30);
+  const [ads, setAds] = useState<any[]>([]);
+  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
   const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
@@ -61,7 +66,7 @@ const Admin = () => {
   useEffect(() => { reload(); }, []);
 
   async function reload() {
-    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1] = await Promise.all([
+    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1, ad1] = await Promise.all([
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("smtp_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("premium_contacts").select("*").order("created_at", { ascending: false }),
@@ -73,12 +78,14 @@ const Admin = () => {
       (supabase as any).from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
       (supabase as any).from("mpesa_packages").select("*").order("sort_order"),
       (supabase as any).from("connection_requests").select("*").order("created_at", { ascending: false }).limit(100),
+      (supabase as any).from("ads").select("*").order("created_at", { ascending: false }),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
     setLocations(l1.data ?? []);
     setMpesa(mp1.data); setPayments(pay1.data ?? []);
     setPackages(pkg1.data ?? []); setRequests(req1.data ?? []);
+    setAds(ad1.data ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
@@ -104,10 +111,35 @@ const Admin = () => {
       premium_message: s.premium_message,
       enable_otp_login: !!s.enable_otp_login, enable_2fa_email: !!s.enable_2fa_email,
       allowed_country_codes: s.allowed_country_codes ?? [],
+      meta_title: s.meta_title ?? null, meta_description: s.meta_description ?? null,
+      meta_keywords: s.meta_keywords ?? null, og_image_url: s.og_image_url ?? null,
+      favicon_url: s.favicon_url ?? null, canonical_url: s.canonical_url ?? null,
+      google_site_verification: s.google_site_verification ?? null,
+      ads_enabled: s.ads_enabled !== false,
     }).eq("id", 1);
     if (error) return toast.error(error.message);
-    toast.success("Site settings saved");
+    toast.success("Saved");
   }
+  async function saveAd(a: any) {
+    const payload = {
+      title: a.title, body: a.body || null, cta_text: a.cta_text || null,
+      placement: a.placement || "banner", image_url: a.image_url || null,
+      video_url: a.video_url || null, link_url: a.link_url || null,
+      reward_swipes: Number(a.reward_swipes) || 5, weight: Number(a.weight) || 1,
+      is_active: a.is_active !== false,
+    };
+    if (a.id) {
+      const { error } = await (supabase as any).from("ads").update(payload).eq("id", a.id);
+      if (error) return toast.error(error.message);
+    } else {
+      if (!payload.title) return toast.error("Title required");
+      const { error } = await (supabase as any).from("ads").insert(payload);
+      if (error) return toast.error(error.message);
+      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
+    }
+    toast.success("Ad saved"); reload();
+  }
+  async function delAd(id: string) { await (supabase as any).from("ads").delete().eq("id", id); reload(); }
   async function saveSmtp() {
     const port = Number(smtp.port) || 587;
     const { error } = await supabase.from("smtp_settings").update({
@@ -530,6 +562,122 @@ const Admin = () => {
                 })}
                 {requests.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No connection requests yet.</p>}
               </div>
+            </Section>
+          )}
+
+          {tab === "ads" && (
+            <Section title="Custom ads" subtitle="Banner or floating ads on Discover. Users click to earn bonus swipes — your monetization core.">
+              <Toggle label="Ads enabled site-wide" checked={s.ads_enabled !== false} onChange={v => { setS({ ...s, ads_enabled: v }); }} />
+              <div className="flex justify-end"><Button size="sm" variant="outline" onClick={saveSettings}>Save toggle</Button></div>
+
+              <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 space-y-2">
+                <p className="font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> Create new ad</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Field label="Title"><Input value={newAd.title} onChange={e => setNewAd({ ...newAd, title: e.target.value })} /></Field>
+                  <Field label="Placement">
+                    <Select value={newAd.placement} onValueChange={v => setNewAd({ ...newAd, placement: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="banner">Banner (top of Discover)</SelectItem>
+                        <SelectItem value="floating">Floating (bottom-right)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <Field label="Body / description"><Textarea rows={2} value={newAd.body} onChange={e => setNewAd({ ...newAd, body: e.target.value })} /></Field>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Field label="CTA text"><Input value={newAd.cta_text} onChange={e => setNewAd({ ...newAd, cta_text: e.target.value })} /></Field>
+                  <Field label="Reward swipes"><Input type="number" value={newAd.reward_swipes} onChange={e => setNewAd({ ...newAd, reward_swipes: Number(e.target.value) })} /></Field>
+                  <Field label="Weight (priority)"><Input type="number" value={newAd.weight} onChange={e => setNewAd({ ...newAd, weight: Number(e.target.value) })} /></Field>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Field label="Image URL (optional)"><Input value={newAd.image_url} onChange={e => setNewAd({ ...newAd, image_url: e.target.value })} placeholder="https://…" /></Field>
+                  <Field label="Video URL (optional)"><Input value={newAd.video_url} onChange={e => setNewAd({ ...newAd, video_url: e.target.value })} placeholder="https://… .mp4" /></Field>
+                  <Field label="Link URL (optional)"><Input value={newAd.link_url} onChange={e => setNewAd({ ...newAd, link_url: e.target.value })} /></Field>
+                </div>
+                <Button size="sm" onClick={() => saveAd(newAd)} className="gradient-primary text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Create ad</Button>
+              </div>
+
+              <div className="space-y-3">
+                {ads.map((a) => (
+                  <div key={a.id} className="rounded-2xl border border-border bg-background p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold flex items-center gap-2">
+                          {a.video_url ? <Video className="h-4 w-4 text-primary" /> : a.image_url ? <ImageIcon className="h-4 w-4 text-primary" /> : <Megaphone className="h-4 w-4 text-primary" />}
+                          {a.title}
+                          <Badge variant="secondary">{a.placement}</Badge>
+                          {!a.is_active && <Badge variant="outline">paused</Badge>}
+                        </p>
+                        <p className="text-xs text-muted-foreground">+{a.reward_swipes} swipes · weight {a.weight}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch checked={a.is_active !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, is_active: v } : x))} />
+                        <Button size="icon" variant="ghost" onClick={() => delAd(a.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Field label="Title"><Input value={a.title} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, title: e.target.value } : x))} /></Field>
+                      <Field label="CTA"><Input value={a.cta_text ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, cta_text: e.target.value } : x))} /></Field>
+                    </div>
+                    <Field label="Body"><Textarea rows={2} value={a.body ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, body: e.target.value } : x))} /></Field>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <Field label="Image URL"><Input value={a.image_url ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, image_url: e.target.value } : x))} /></Field>
+                      <Field label="Video URL"><Input value={a.video_url ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, video_url: e.target.value } : x))} /></Field>
+                      <Field label="Link URL"><Input value={a.link_url ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, link_url: e.target.value } : x))} /></Field>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <Field label="Reward swipes"><Input type="number" value={a.reward_swipes} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, reward_swipes: Number(e.target.value) } : x))} /></Field>
+                      <Field label="Weight"><Input type="number" value={a.weight} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, weight: Number(e.target.value) } : x))} /></Field>
+                      <Field label="Placement">
+                        <Select value={a.placement} onValueChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, placement: v } : x))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="banner">Banner</SelectItem>
+                            <SelectItem value="floating">Floating</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+                    <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Preview ({a.placement})</p>
+                      <div className="flex items-center gap-3">
+                        {a.image_url && <img src={a.image_url} className="h-12 w-12 rounded-lg object-cover" alt="" />}
+                        {a.video_url && !a.image_url && <video src={a.video_url} muted autoPlay loop playsInline className="h-12 w-12 rounded-lg object-cover" />}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold">{a.title || "Untitled"}</p>
+                          {a.body && <p className="truncate text-xs text-muted-foreground">{a.body}</p>}
+                        </div>
+                        <span className="shrink-0 rounded-full gradient-primary px-3 py-1 text-xs font-bold text-primary-foreground">{a.cta_text || `+${a.reward_swipes} swipes`}</span>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => saveAd(a)} className="gradient-primary text-primary-foreground"><CheckCircle2 className="mr-1 h-4 w-4" /> Save</Button>
+                  </div>
+                ))}
+                {ads.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No ads yet. Create your first one above.</p>}
+              </div>
+            </Section>
+          )}
+
+          {tab === "seo" && (
+            <Section title="SEO & Search Console" subtitle="Meta tags, favicon, Google site verification and sitemap.">
+              <Field label="Meta title"><Input value={s.meta_title ?? ""} onChange={e => setS({ ...s, meta_title: e.target.value })} placeholder="HeartLink — Modern Dating" /></Field>
+              <Field label="Meta description"><Textarea rows={2} value={s.meta_description ?? ""} onChange={e => setS({ ...s, meta_description: e.target.value })} /></Field>
+              <Field label="Meta keywords"><Input value={s.meta_keywords ?? ""} onChange={e => setS({ ...s, meta_keywords: e.target.value })} placeholder="dating, love, mature singles" /></Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Canonical URL"><Input value={s.canonical_url ?? ""} onChange={e => setS({ ...s, canonical_url: e.target.value })} placeholder="https://yourdomain.com/" /></Field>
+                <Field label="OG / social image URL"><Input value={s.og_image_url ?? ""} onChange={e => setS({ ...s, og_image_url: e.target.value })} /></Field>
+                <Field label="Favicon URL"><Input value={s.favicon_url ?? ""} onChange={e => setS({ ...s, favicon_url: e.target.value })} placeholder="https://…/favicon.png" /></Field>
+                <Field label="Google site verification">
+                  <Input value={s.google_site_verification ?? ""} onChange={e => setS({ ...s, google_site_verification: e.target.value })} placeholder="paste the content value from Google" />
+                </Field>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+                <p><strong>Sitemap:</strong> <a className="text-primary hover:underline" href="/sitemap.xml" target="_blank" rel="noreferrer">/sitemap.xml</a> — submit this URL in Google Search Console.</p>
+                <p><strong>Robots:</strong> <a className="text-primary hover:underline" href="/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> — already references your sitemap.</p>
+                <p>To verify with Google: paste the <em>content</em> value from your verification meta tag (the token only, not full HTML) and save. The tag is injected on every page.</p>
+              </div>
+              <Button onClick={saveSettings} className="gradient-primary text-primary-foreground">Save SEO</Button>
             </Section>
           )}
         </main>

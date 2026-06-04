@@ -87,7 +87,7 @@ const Onboarding = () => {
     const { error } = await supabase.from("profiles").update({
       display_name: p.display_name, bio: p.bio, age: ageNum,
       gender: p.gender, orientation: p.orientation, interested_in: p.interested_in,
-      country: p.country, city: p.city, ethnicity: p.ethnicity, age_group: p.age_group,
+      country: p.country, city: p.city, region: p.region || null, ethnicity: p.ethnicity, age_group: p.age_group,
       religion: p.religion || null, relationship_goals: p.relationship_goals || null,
       smoking: p.smoking || null, drinking: p.drinking || null, has_children: p.has_children || null,
       education: p.education || null, financial_status: p.financial_status || null,
@@ -148,6 +148,7 @@ const Onboarding = () => {
               </Select>
             </Field>
             <Field label="City"><Input value={p.city} onChange={e => setP({ ...p, city: e.target.value })} /></Field>
+            <Field label="Region / State"><Input value={p.region ?? ""} placeholder="e.g. London, California, Nairobi County" onChange={e => setP({ ...p, region: e.target.value })} /></Field>
             <Field label="Ethnicity"><Picker value={p.ethnicity} onChange={v => setP({ ...p, ethnicity: v })} options={ETHNICITIES} /></Field>
             <Field label="Religion"><Picker value={p.religion} onChange={v => setP({ ...p, religion: v })} options={RELIGIONS} /></Field>
             <Field label="Height (cm)"><Input type="number" value={p.height_cm} onChange={e => setP({ ...p, height_cm: e.target.value })} /></Field>
