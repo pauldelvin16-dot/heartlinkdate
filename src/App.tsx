@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound.tsx";
 import { TopNav } from "./components/TopNav";
 import { BottomNav } from "./components/BottomNav";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { SEOHead } from "./components/SEOHead";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
       <Toaster />
       <Sonner position="top-center" />
       <BrowserRouter>
+        <SEOHead />
         <TopNav />
         <Routes>
           <Route path="/" element={<Landing />} />
