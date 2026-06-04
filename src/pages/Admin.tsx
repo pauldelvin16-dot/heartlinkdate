@@ -111,10 +111,35 @@ const Admin = () => {
       premium_message: s.premium_message,
       enable_otp_login: !!s.enable_otp_login, enable_2fa_email: !!s.enable_2fa_email,
       allowed_country_codes: s.allowed_country_codes ?? [],
+      meta_title: s.meta_title ?? null, meta_description: s.meta_description ?? null,
+      meta_keywords: s.meta_keywords ?? null, og_image_url: s.og_image_url ?? null,
+      favicon_url: s.favicon_url ?? null, canonical_url: s.canonical_url ?? null,
+      google_site_verification: s.google_site_verification ?? null,
+      ads_enabled: s.ads_enabled !== false,
     }).eq("id", 1);
     if (error) return toast.error(error.message);
-    toast.success("Site settings saved");
+    toast.success("Saved");
   }
+  async function saveAd(a: any) {
+    const payload = {
+      title: a.title, body: a.body || null, cta_text: a.cta_text || null,
+      placement: a.placement || "banner", image_url: a.image_url || null,
+      video_url: a.video_url || null, link_url: a.link_url || null,
+      reward_swipes: Number(a.reward_swipes) || 5, weight: Number(a.weight) || 1,
+      is_active: a.is_active !== false,
+    };
+    if (a.id) {
+      const { error } = await (supabase as any).from("ads").update(payload).eq("id", a.id);
+      if (error) return toast.error(error.message);
+    } else {
+      if (!payload.title) return toast.error("Title required");
+      const { error } = await (supabase as any).from("ads").insert(payload);
+      if (error) return toast.error(error.message);
+      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
+    }
+    toast.success("Ad saved"); reload();
+  }
+  async function delAd(id: string) { await (supabase as any).from("ads").delete().eq("id", id); reload(); }
   async function saveSmtp() {
     const port = Number(smtp.port) || 587;
     const { error } = await supabase.from("smtp_settings").update({
