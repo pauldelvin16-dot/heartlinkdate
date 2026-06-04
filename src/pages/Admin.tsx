@@ -14,9 +14,10 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
   Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
+  Megaphone, Image as ImageIcon, Video, Sparkles,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests" | "ads" | "seo";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -30,6 +31,8 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "mpesa", label: "M-Pesa", icon: Smartphone },
   { key: "packages", label: "Packages", icon: Package },
   { key: "requests", label: "Connection requests", icon: Inbox },
+  { key: "ads", label: "Ads", icon: Megaphone },
+  { key: "seo", label: "SEO", icon: Sparkles },
 ];
 
 const Admin = () => {
