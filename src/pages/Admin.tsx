@@ -55,6 +55,8 @@ const Admin = () => {
   const [search, setSearch] = useState("");
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
   const [grantDays, setGrantDays] = useState(30);
+  const [ads, setAds] = useState<any[]>([]);
+  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
   const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
@@ -64,7 +66,7 @@ const Admin = () => {
   useEffect(() => { reload(); }, []);
 
   async function reload() {
-    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1] = await Promise.all([
+    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1, ad1] = await Promise.all([
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("smtp_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("premium_contacts").select("*").order("created_at", { ascending: false }),
@@ -76,12 +78,14 @@ const Admin = () => {
       (supabase as any).from("mpesa_payments").select("*").order("created_at", { ascending: false }).limit(100),
       (supabase as any).from("mpesa_packages").select("*").order("sort_order"),
       (supabase as any).from("connection_requests").select("*").order("created_at", { ascending: false }).limit(100),
+      (supabase as any).from("ads").select("*").order("created_at", { ascending: false }),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
     setLocations(l1.data ?? []);
     setMpesa(mp1.data); setPayments(pay1.data ?? []);
     setPackages(pkg1.data ?? []); setRequests(req1.data ?? []);
+    setAds(ad1.data ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
