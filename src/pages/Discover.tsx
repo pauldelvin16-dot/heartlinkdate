@@ -169,6 +169,16 @@ const Discover = () => {
                   </Select>
                 </div>
                 <div>
+                  <label className="text-sm font-medium">Region / State / County</label>
+                  <input
+                    disabled={!isPremium}
+                    value={filterRegion}
+                    onChange={e => setFilterRegion(e.target.value)}
+                    placeholder="e.g. Greater London, Nairobi"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
+                  />
+                </div>
+                <div>
                   <label className="text-sm font-medium">Financial status</label>
                   <Select value={filterFinancial} onValueChange={(v) => setFilterFinancial(v === "__all" ? "" : v)} disabled={!isPremium}>
                     <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
