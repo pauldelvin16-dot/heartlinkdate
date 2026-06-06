@@ -606,8 +606,53 @@ const Admin = () => {
                   <Field label="Video URL (optional)"><Input value={newAd.video_url} onChange={e => setNewAd({ ...newAd, video_url: e.target.value })} placeholder="https://… .mp4" /></Field>
                   <Field label="Link URL (optional)"><Input value={newAd.link_url} onChange={e => setNewAd({ ...newAd, link_url: e.target.value })} /></Field>
                 </div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Field label="Target countries (comma sep, blank = all)">
+                    <Input
+                      value={Array.isArray(newAd.target_countries) ? newAd.target_countries.join(", ") : (newAd.target_countries ?? "")}
+                      onChange={e => setNewAd({ ...newAd, target_countries: e.target.value })}
+                      placeholder="Kenya, Uganda"
+                    />
+                  </Field>
+                  <Field label="Skip after (seconds)">
+                    <Input type="number" min={0} value={newAd.skip_after_seconds} onChange={e => setNewAd({ ...newAd, skip_after_seconds: Number(e.target.value) })} />
+                  </Field>
+                  <label className="flex items-end gap-2 pb-2 text-sm"><Switch checked={newAd.is_skippable !== false} onCheckedChange={v => setNewAd({ ...newAd, is_skippable: v })} /> Skippable</label>
+                </div>
                 <Button size="sm" onClick={() => saveAd(newAd)} className="gradient-primary text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Create ad</Button>
               </div>
+
+              {/* Analytics */}
+              {adStats.length > 0 && (
+                <div className="rounded-2xl border border-border bg-background p-4">
+                  <p className="mb-3 font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Ad performance</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-muted-foreground">
+                        <tr className="border-b border-border">
+                          <th className="px-2 py-2 text-left">Ad</th>
+                          <th className="px-2 py-2 text-right">Impressions</th>
+                          <th className="px-2 py-2 text-right">Clicks</th>
+                          <th className="px-2 py-2 text-right">CTR</th>
+                          <th className="px-2 py-2 text-right">Swipes granted</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adStats.map((r: any) => (
+                          <tr key={r.ad_id} className="border-b border-border last:border-0">
+                            <td className="px-2 py-2"><span className="font-medium">{r.title}</span> <Badge variant="secondary" className="ml-1">{r.placement}</Badge></td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.impressions}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.clicks}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.ctr}%</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.swipes_granted}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 {ads.map((a) => (
