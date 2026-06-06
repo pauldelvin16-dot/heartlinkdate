@@ -87,6 +87,8 @@ const Admin = () => {
     setMpesa(mp1.data); setPayments(pay1.data ?? []);
     setPackages(pkg1.data ?? []); setRequests(req1.data ?? []);
     setAds(ad1.data ?? []);
+    const { data: stats } = await (supabase as any).rpc("ad_stats");
+    setAdStats(stats ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
