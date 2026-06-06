@@ -124,12 +124,20 @@ const Admin = () => {
     toast.success("Saved");
   }
   async function saveAd(a: any) {
+    const tc = Array.isArray(a.target_countries)
+      ? a.target_countries
+      : typeof a.target_countries === "string"
+        ? a.target_countries.split(",").map((x: string) => x.trim()).filter(Boolean)
+        : [];
     const payload = {
       title: a.title, body: a.body || null, cta_text: a.cta_text || null,
       placement: a.placement || "banner", image_url: a.image_url || null,
       video_url: a.video_url || null, link_url: a.link_url || null,
       reward_swipes: Number(a.reward_swipes) || 5, weight: Number(a.weight) || 1,
       is_active: a.is_active !== false,
+      is_skippable: a.is_skippable !== false,
+      skip_after_seconds: Number(a.skip_after_seconds) || 5,
+      target_countries: tc,
     };
     if (a.id) {
       const { error } = await (supabase as any).from("ads").update(payload).eq("id", a.id);
@@ -138,7 +146,7 @@ const Admin = () => {
       if (!payload.title) return toast.error("Title required");
       const { error } = await (supabase as any).from("ads").insert(payload);
       if (error) return toast.error(error.message);
-      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
+      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
     }
     toast.success("Ad saved"); reload();
   }
