@@ -52,6 +52,7 @@ const Discover = () => {
   const [loading, setLoading] = useState(true);
   const [matchModal, setMatchModal] = useState<Profile | null>(null);
   const [filterCountry, setFilterCountry] = useState("");
+  const [filterRegion, setFilterRegion] = useState("");
   const [filterFinancial, setFilterFinancial] = useState("");
   const [nearbyOnly, setNearbyOnly] = useState(false);
   const [radiusValue, setRadiusValue] = useState(100);
