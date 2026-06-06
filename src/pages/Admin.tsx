@@ -747,7 +747,24 @@ const Admin = () => {
                 <p><strong>Robots:</strong> <a className="text-primary hover:underline" href="/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> — already references your sitemap.</p>
                 <p>To verify with Google: paste the <em>content</em> value from your verification meta tag (the token only, not full HTML) and save. The tag is injected on every page.</p>
               </div>
-              <Button onClick={saveSettings} className="gradient-primary text-primary-foreground">Save SEO</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={saveSettings} className="gradient-primary text-primary-foreground">Save SEO</Button>
+                <Button variant="outline" onClick={async () => {
+                  await saveSettings();
+                  const base = (s.canonical_url || window.location.origin).replace(/\/$/, "");
+                  const urls = ["/", "/discover", "/matches", "/connect", "/auth", "/install"].map(p =>
+                    `  <url>\n    <loc>${base}${p}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${p === "/" ? "1.0" : "0.7"}</priority>\n  </url>`
+                  ).join("\n");
+                  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+                  const blob = new Blob([xml], { type: "application/xml" });
+                  const a = document.createElement("a");
+                  a.href = URL.createObjectURL(blob); a.download = "sitemap.xml"; a.click();
+                  toast.success("Sitemap regenerated — upload to /public/sitemap.xml");
+                }}>Regenerate sitemap.xml</Button>
+                <Button variant="ghost" onClick={() => { document.title = s.meta_title || s.site_name; toast.success("Metadata re-applied"); }}>
+                  Reapply metadata
+                </Button>
+              </div>
             </Section>
           )}
         </main>
