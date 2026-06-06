@@ -46,6 +46,30 @@ export type Database = {
           },
         ]
       }
+      ad_impressions: {
+        Row: {
+          ad_id: string
+          country: string | null
+          created_at: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          ad_id: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          ad_id?: string
+          country?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_connections: {
         Row: {
           created_at: string
@@ -82,10 +106,13 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          is_skippable: boolean
           link_url: string | null
           placement: string
           reward_swipes: number
+          skip_after_seconds: number
           starts_at: string | null
+          target_countries: string[]
           title: string
           updated_at: string
           video_url: string | null
@@ -99,10 +126,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_skippable?: boolean
           link_url?: string | null
           placement?: string
           reward_swipes?: number
+          skip_after_seconds?: number
           starts_at?: string | null
+          target_countries?: string[]
           title: string
           updated_at?: string
           video_url?: string | null
@@ -116,10 +146,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_skippable?: boolean
           link_url?: string | null
           placement?: string
           reward_swipes?: number
+          skip_after_seconds?: number
           starts_at?: string | null
+          target_countries?: string[]
           title?: string
           updated_at?: string
           video_url?: string | null
@@ -951,6 +984,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ad_stats: {
+        Args: never
+        Returns: {
+          ad_id: string
+          clicks: number
+          ctr: number
+          impressions: number
+          placement: string
+          swipes_granted: number
+          title: string
+        }[]
+      }
       can_message: { Args: { _a: string; _b: string }; Returns: boolean }
       click_ad: { Args: { _ad_id: string }; Returns: number }
       consume_bonus_swipe: { Args: never; Returns: boolean }
@@ -982,6 +1027,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_ad_impression: {
+        Args: { _ad_id: string; _country?: string }
+        Returns: undefined
       }
       mpesa_mark_paid_and_grant: {
         Args: {

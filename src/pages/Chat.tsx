@@ -30,12 +30,20 @@ const Chat = () => {
     (async () => {
       const { data: m } = await supabase.from("matches").select("*").eq("id", matchId).maybeSingle();
       if (!m) { toast.error("Match not found"); nav("/matches"); return; }
+      if (m.user_a !== user.id && m.user_b !== user.id) { toast.error("Not allowed"); nav("/matches"); return; }
       setMatch(m);
       const otherId = m.user_a === user.id ? m.user_b : m.user_a;
       const { data: p } = await supabase.from("profiles").select("*").eq("id", otherId).maybeSingle();
       setOther(p);
       const { data: can } = await (supabase as any).rpc("can_message", { _a: user.id, _b: otherId });
-      setCanMsg(!!can);
+      const allowed = !!can;
+      setCanMsg(allowed);
+      if (!allowed) {
+        // Server-side gate: don't even load history when not allowed
+        setMessages([]);
+        setLoading(false);
+        return;
+      }
       const { data: msgs } = await supabase.from("messages").select("*").eq("match_id", matchId).order("created_at", { ascending: true });
       setMessages(msgs ?? []);
       setLoading(false);

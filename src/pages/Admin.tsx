@@ -56,7 +56,8 @@ const Admin = () => {
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
   const [grantDays, setGrantDays] = useState(30);
   const [ads, setAds] = useState<any[]>([]);
-  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
+  const [adStats, setAdStats] = useState<any[]>([]);
+  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
   const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
@@ -86,6 +87,8 @@ const Admin = () => {
     setMpesa(mp1.data); setPayments(pay1.data ?? []);
     setPackages(pkg1.data ?? []); setRequests(req1.data ?? []);
     setAds(ad1.data ?? []);
+    const { data: stats } = await (supabase as any).rpc("ad_stats");
+    setAdStats(stats ?? []);
   }
 
   const filteredProfiles = useMemo(() => {
@@ -121,12 +124,20 @@ const Admin = () => {
     toast.success("Saved");
   }
   async function saveAd(a: any) {
+    const tc = Array.isArray(a.target_countries)
+      ? a.target_countries
+      : typeof a.target_countries === "string"
+        ? a.target_countries.split(",").map((x: string) => x.trim()).filter(Boolean)
+        : [];
     const payload = {
       title: a.title, body: a.body || null, cta_text: a.cta_text || null,
       placement: a.placement || "banner", image_url: a.image_url || null,
       video_url: a.video_url || null, link_url: a.link_url || null,
       reward_swipes: Number(a.reward_swipes) || 5, weight: Number(a.weight) || 1,
       is_active: a.is_active !== false,
+      is_skippable: a.is_skippable !== false,
+      skip_after_seconds: Number(a.skip_after_seconds) || 5,
+      target_countries: tc,
     };
     if (a.id) {
       const { error } = await (supabase as any).from("ads").update(payload).eq("id", a.id);
@@ -135,7 +146,7 @@ const Admin = () => {
       if (!payload.title) return toast.error("Title required");
       const { error } = await (supabase as any).from("ads").insert(payload);
       if (error) return toast.error(error.message);
-      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
+      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
     }
     toast.success("Ad saved"); reload();
   }
@@ -595,8 +606,52 @@ const Admin = () => {
                   <Field label="Video URL (optional)"><Input value={newAd.video_url} onChange={e => setNewAd({ ...newAd, video_url: e.target.value })} placeholder="https://… .mp4" /></Field>
                   <Field label="Link URL (optional)"><Input value={newAd.link_url} onChange={e => setNewAd({ ...newAd, link_url: e.target.value })} /></Field>
                 </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Field label="Target countries (comma sep, blank = all)">
+                    <Input
+                      value={Array.isArray(newAd.target_countries) ? newAd.target_countries.join(", ") : (newAd.target_countries ?? "")}
+                      onChange={e => setNewAd({ ...newAd, target_countries: e.target.value })}
+                      placeholder="Kenya, Uganda"
+                    />
+                  </Field>
+                  <Field label="Skip after (seconds)">
+                    <Input type="number" min={0} value={newAd.skip_after_seconds} onChange={e => setNewAd({ ...newAd, skip_after_seconds: Number(e.target.value) })} />
+                  </Field>
+                  <label className="flex items-end gap-2 pb-2 text-sm"><Switch checked={newAd.is_skippable !== false} onCheckedChange={v => setNewAd({ ...newAd, is_skippable: v })} /> Skippable</label>
+                </div>
                 <Button size="sm" onClick={() => saveAd(newAd)} className="gradient-primary text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Create ad</Button>
               </div>
+
+              {/* Analytics */}
+              {adStats.length > 0 && (
+                <div className="rounded-2xl border border-border bg-background p-4">
+                  <p className="mb-3 font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Ad performance</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-muted-foreground">
+                        <tr className="border-b border-border">
+                          <th className="px-2 py-2 text-left">Ad</th>
+                          <th className="px-2 py-2 text-right">Impressions</th>
+                          <th className="px-2 py-2 text-right">Clicks</th>
+                          <th className="px-2 py-2 text-right">CTR</th>
+                          <th className="px-2 py-2 text-right">Swipes granted</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adStats.map((r: any) => (
+                          <tr key={r.ad_id} className="border-b border-border last:border-0">
+                            <td className="px-2 py-2"><span className="font-medium">{r.title}</span> <Badge variant="secondary" className="ml-1">{r.placement}</Badge></td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.impressions}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.clicks}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.ctr}%</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.swipes_granted}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 {ads.map((a) => (
@@ -639,6 +694,21 @@ const Admin = () => {
                         </Select>
                       </Field>
                     </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <Field label="Target countries (comma sep)">
+                        <Input
+                          value={Array.isArray(a.target_countries) ? a.target_countries.join(", ") : (a.target_countries ?? "")}
+                          onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, target_countries: e.target.value } : x))}
+                          placeholder="Kenya, Uganda"
+                        />
+                      </Field>
+                      <Field label="Skip after (s)">
+                        <Input type="number" min={0} value={a.skip_after_seconds ?? 5} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, skip_after_seconds: Number(e.target.value) } : x))} />
+                      </Field>
+                      <label className="flex items-end gap-2 pb-2 text-sm">
+                        <Switch checked={a.is_skippable !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, is_skippable: v } : x))} /> Skippable
+                      </label>
+                    </div>
                     <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 p-3">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Preview ({a.placement})</p>
                       <div className="flex items-center gap-3">
@@ -677,7 +747,24 @@ const Admin = () => {
                 <p><strong>Robots:</strong> <a className="text-primary hover:underline" href="/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> — already references your sitemap.</p>
                 <p>To verify with Google: paste the <em>content</em> value from your verification meta tag (the token only, not full HTML) and save. The tag is injected on every page.</p>
               </div>
-              <Button onClick={saveSettings} className="gradient-primary text-primary-foreground">Save SEO</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={saveSettings} className="gradient-primary text-primary-foreground">Save SEO</Button>
+                <Button variant="outline" onClick={async () => {
+                  await saveSettings();
+                  const base = (s.canonical_url || window.location.origin).replace(/\/$/, "");
+                  const urls = ["/", "/discover", "/matches", "/connect", "/auth", "/install"].map(p =>
+                    `  <url>\n    <loc>${base}${p}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${p === "/" ? "1.0" : "0.7"}</priority>\n  </url>`
+                  ).join("\n");
+                  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+                  const blob = new Blob([xml], { type: "application/xml" });
+                  const a = document.createElement("a");
+                  a.href = URL.createObjectURL(blob); a.download = "sitemap.xml"; a.click();
+                  toast.success("Sitemap regenerated — upload to /public/sitemap.xml");
+                }}>Regenerate sitemap.xml</Button>
+                <Button variant="ghost" onClick={() => { document.title = s.meta_title || s.site_name; toast.success("Metadata re-applied"); }}>
+                  Reapply metadata
+                </Button>
+              </div>
             </Section>
           )}
         </main>

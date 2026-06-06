@@ -52,6 +52,7 @@ const Discover = () => {
   const [loading, setLoading] = useState(true);
   const [matchModal, setMatchModal] = useState<Profile | null>(null);
   const [filterCountry, setFilterCountry] = useState("");
+  const [filterRegion, setFilterRegion] = useState("");
   const [filterFinancial, setFilterFinancial] = useState("");
   const [nearbyOnly, setNearbyOnly] = useState(false);
   const [radiusValue, setRadiusValue] = useState(100);
@@ -73,6 +74,7 @@ const Discover = () => {
     }
     if (myProfile?.is_premium) {
       if (filterCountry) list = list.filter(p => p.country === filterCountry);
+      if (filterRegion.trim()) list = list.filter(p => (p as any).region && String((p as any).region).toLowerCase().includes(filterRegion.trim().toLowerCase()));
       if (filterFinancial) list = list.filter(p => p.financial_status === filterFinancial);
     }
     if (nearbyOnly && myProfile?.is_premium) {
@@ -82,7 +84,7 @@ const Discover = () => {
     setProfiles(list);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterRegion, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
 
   // Preload next card's image for instant render on slow networks
   useEffect(() => {
@@ -127,7 +129,7 @@ const Discover = () => {
 
   return (
     <div className="container max-w-md py-4 pb-24 md:pb-8">
-      <AdBanner onReward={() => load()} />
+      <AdBanner onReward={() => load()} userCountry={me?.country ?? null} />
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Discover</h1>
@@ -165,6 +167,16 @@ const Discover = () => {
                       {COUNTRIES.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Region / State / County</label>
+                  <input
+                    disabled={!isPremium}
+                    value={filterRegion}
+                    onChange={e => setFilterRegion(e.target.value)}
+                    placeholder="e.g. Greater London, Nairobi"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Financial status</label>
