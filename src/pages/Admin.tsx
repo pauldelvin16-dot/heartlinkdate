@@ -606,7 +606,6 @@ const Admin = () => {
                   <Field label="Video URL (optional)"><Input value={newAd.video_url} onChange={e => setNewAd({ ...newAd, video_url: e.target.value })} placeholder="https://… .mp4" /></Field>
                   <Field label="Link URL (optional)"><Input value={newAd.link_url} onChange={e => setNewAd({ ...newAd, link_url: e.target.value })} /></Field>
                 </div>
-                </div>
                 <div className="grid gap-2 sm:grid-cols-3">
                   <Field label="Target countries (comma sep, blank = all)">
                     <Input
