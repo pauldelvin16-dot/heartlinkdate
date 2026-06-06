@@ -129,7 +129,7 @@ const Discover = () => {
 
   return (
     <div className="container max-w-md py-4 pb-24 md:pb-8">
-      <AdBanner onReward={() => load()} />
+      <AdBanner onReward={() => load()} userCountry={me?.country ?? null} />
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Discover</h1>
