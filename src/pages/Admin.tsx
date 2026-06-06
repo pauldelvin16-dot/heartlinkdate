@@ -56,7 +56,8 @@ const Admin = () => {
   const [activeProfile, setActiveProfile] = useState<any | null>(null);
   const [grantDays, setGrantDays] = useState(30);
   const [ads, setAds] = useState<any[]>([]);
-  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true });
+  const [adStats, setAdStats] = useState<any[]>([]);
+  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
   const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
