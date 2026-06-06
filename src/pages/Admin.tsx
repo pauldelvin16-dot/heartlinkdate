@@ -694,6 +694,21 @@ const Admin = () => {
                         </Select>
                       </Field>
                     </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <Field label="Target countries (comma sep)">
+                        <Input
+                          value={Array.isArray(a.target_countries) ? a.target_countries.join(", ") : (a.target_countries ?? "")}
+                          onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, target_countries: e.target.value } : x))}
+                          placeholder="Kenya, Uganda"
+                        />
+                      </Field>
+                      <Field label="Skip after (s)">
+                        <Input type="number" min={0} value={a.skip_after_seconds ?? 5} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, skip_after_seconds: Number(e.target.value) } : x))} />
+                      </Field>
+                      <label className="flex items-end gap-2 pb-2 text-sm">
+                        <Switch checked={a.is_skippable !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, is_skippable: v } : x))} /> Skippable
+                      </label>
+                    </div>
                     <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 p-3">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Preview ({a.placement})</p>
                       <div className="flex items-center gap-3">
