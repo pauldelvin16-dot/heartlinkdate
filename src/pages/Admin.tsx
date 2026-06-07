@@ -60,7 +60,11 @@ const Admin = () => {
   const [grantDays, setGrantDays] = useState(30);
   const [ads, setAds] = useState<any[]>([]);
   const [adStats, setAdStats] = useState<any[]>([]);
-  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
+  const [leads, setLeads] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [newProduct, setNewProduct] = useState<any>({ name: "", description: "", price_kes: 0, image_url: "", category: "", stock: 0, sort_order: 0, is_active: true });
+  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [], campaign_type: "reward", form_fields: "", open_in_new_tab: true, app_store_url: "", play_store_url: "" });
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
   const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
