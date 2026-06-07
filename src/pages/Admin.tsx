@@ -782,6 +782,35 @@ const Admin = () => {
                         <Switch checked={a.is_skippable !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, is_skippable: v } : x))} /> Skippable
                       </label>
                     </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <Field label="Campaign type">
+                        <Select value={a.campaign_type || "reward"} onValueChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, campaign_type: v } : x))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="reward">Reward</SelectItem>
+                            <SelectItem value="traffic">Traffic</SelectItem>
+                            <SelectItem value="engagement">Engagement</SelectItem>
+                            <SelectItem value="awareness">Awareness</SelectItem>
+                            <SelectItem value="leads">Leads</SelectItem>
+                            <SelectItem value="app_promotion">App promotion</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="App Store URL"><Input value={a.app_store_url ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, app_store_url: e.target.value } : x))} /></Field>
+                      <Field label="Play Store URL"><Input value={a.play_store_url ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, play_store_url: e.target.value } : x))} /></Field>
+                    </div>
+                    {a.campaign_type === "leads" && (
+                      <Field label="Form fields (JSON)">
+                        <Textarea rows={3} className="font-mono text-xs"
+                          value={typeof a.form_fields === "string" ? a.form_fields : JSON.stringify(a.form_fields ?? [], null, 2)}
+                          onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, form_fields: e.target.value } : x))} />
+                      </Field>
+                    )}
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={a.open_in_new_tab !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, open_in_new_tab: v } : x))} />
+                      Open link in new browser tab
+                    </label>
+                    </div>
                     <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 p-3">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Preview ({a.placement})</p>
                       <div className="flex items-center gap-3">
