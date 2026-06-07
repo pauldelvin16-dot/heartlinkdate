@@ -810,7 +810,6 @@ const Admin = () => {
                       <Switch checked={a.open_in_new_tab !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, open_in_new_tab: v } : x))} />
                       Open link in new browser tab
                     </label>
-                    </div>
                     <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 p-3">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Preview ({a.placement})</p>
                       <div className="flex items-center gap-3">
@@ -830,6 +829,110 @@ const Admin = () => {
               </div>
             </Section>
           )}
+
+          {tab === "leads" && (
+            <Section title="Ad leads" subtitle={`${leads.length} captured leads from your Lead-gen ads.`}>
+              <div className="overflow-hidden rounded-xl border border-border bg-background">
+                {leads.map(l => {
+                  const ad = ads.find(a => a.id === l.ad_id);
+                  return (
+                    <div key={l.id} className="border-b border-border p-3 text-sm last:border-0">
+                      <div className="flex items-center justify-between">
+                        <strong>{l.name || l.email || l.phone || "Anonymous"}</strong>
+                        <span className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{ad?.title ?? l.ad_id.slice(0,8)} · {l.email ?? "—"} · {l.phone ?? "—"}</p>
+                      {Object.keys(l.answers ?? {}).length > 0 && (
+                        <pre className="mt-1 overflow-x-auto rounded bg-muted/40 p-2 text-[11px]">{JSON.stringify(l.answers, null, 2)}</pre>
+                      )}
+                    </div>
+                  );
+                })}
+                {leads.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No leads yet.</p>}
+              </div>
+            </Section>
+          )}
+
+          {tab === "products" && (
+            <Section title="Shop products" subtitle="Items shown on the public Shop page. Set stock to 0 to hide buying.">
+              <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 space-y-2">
+                <p className="font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> Add product</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Field label="Name"><Input value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} /></Field>
+                  <Field label="Category"><Input value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} placeholder="Electronics, Fashion…" /></Field>
+                </div>
+                <Field label="Description"><Textarea rows={2} value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} /></Field>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  <Field label="Price (KES)"><Input type="number" value={newProduct.price_kes} onChange={e => setNewProduct({ ...newProduct, price_kes: e.target.value })} /></Field>
+                  <Field label="Stock"><Input type="number" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} /></Field>
+                  <Field label="Sort"><Input type="number" value={newProduct.sort_order} onChange={e => setNewProduct({ ...newProduct, sort_order: e.target.value })} /></Field>
+                  <Field label="Image URL"><Input value={newProduct.image_url} onChange={e => setNewProduct({ ...newProduct, image_url: e.target.value })} /></Field>
+                </div>
+                <Button size="sm" onClick={() => saveProduct(newProduct)} className="gradient-primary text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Add product</Button>
+              </div>
+              <div className="space-y-2">
+                {products.map(p => (
+                  <div key={p.id} className="rounded-xl border border-border bg-background p-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      {p.image_url && <img src={p.image_url} className="h-14 w-14 rounded-lg object-cover" alt="" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{p.name} <Badge variant="secondary">KES {p.price_kes}</Badge></p>
+                        <p className="text-xs text-muted-foreground truncate">{p.category} · stock {p.stock}</p>
+                      </div>
+                      <Switch checked={p.is_active} onCheckedChange={v => setProducts(products.map(x => x.id === p.id ? { ...x, is_active: v } : x))} />
+                      <Button size="icon" variant="ghost" onClick={() => delProduct(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Field label="Name"><Input value={p.name} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, name: e.target.value } : x))} /></Field>
+                      <Field label="Image URL"><Input value={p.image_url ?? ""} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, image_url: e.target.value } : x))} /></Field>
+                    </div>
+                    <Field label="Description"><Textarea rows={2} value={p.description ?? ""} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, description: e.target.value } : x))} /></Field>
+                    <div className="grid gap-2 sm:grid-cols-4">
+                      <Field label="Price"><Input type="number" value={p.price_kes} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, price_kes: e.target.value } : x))} /></Field>
+                      <Field label="Stock"><Input type="number" value={p.stock} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, stock: e.target.value } : x))} /></Field>
+                      <Field label="Category"><Input value={p.category ?? ""} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, category: e.target.value } : x))} /></Field>
+                      <Field label="Sort"><Input type="number" value={p.sort_order} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, sort_order: e.target.value } : x))} /></Field>
+                    </div>
+                    <Button size="sm" onClick={() => saveProduct(p)} className="gradient-primary text-primary-foreground"><CheckCircle2 className="mr-1 h-4 w-4" /> Save</Button>
+                  </div>
+                ))}
+                {products.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No products yet.</p>}
+              </div>
+            </Section>
+          )}
+
+          {tab === "orders" && (
+            <Section title="Shop orders" subtitle={`${orders.length} orders. Move them through paid → shipped → delivered.`}>
+              <div className="space-y-2">
+                {orders.map(o => (
+                  <div key={o.id} className="rounded-xl border border-border bg-background p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold">#{o.id.slice(0,8).toUpperCase()} · <span className="text-primary">KES {o.total_kes.toLocaleString()}</span></p>
+                        <p className="text-xs text-muted-foreground">{o.full_name} · {o.phone} · {[o.town, o.sub_county, o.county].filter(Boolean).join(", ")}</p>
+                        {o.address && <p className="text-xs text-muted-foreground">{o.address}</p>}
+                        <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>
+                      </div>
+                      <Badge className="capitalize">{o.status}</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {["paid","shipped","delivered","cancelled"].map(st => (
+                        <Button key={st} size="sm" variant={o.status === st ? "default" : "outline"} onClick={() => updateOrderStatus(o, st)}>
+                          {st === "paid" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                          {st === "shipped" && <Truck className="mr-1 h-3 w-3" />}
+                          {st === "delivered" && <Home className="mr-1 h-3 w-3" />}
+                          {st === "cancelled" && <X className="mr-1 h-3 w-3" />}
+                          Mark {st}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {orders.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No orders yet.</p>}
+              </div>
+            </Section>
+          )}
+
 
           {tab === "seo" && (
             <Section title="SEO & Search Console" subtitle="Meta tags, favicon, Google site verification and sitemap.">
