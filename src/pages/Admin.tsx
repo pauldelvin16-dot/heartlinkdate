@@ -140,6 +140,12 @@ const Admin = () => {
       : typeof a.target_countries === "string"
         ? a.target_countries.split(",").map((x: string) => x.trim()).filter(Boolean)
         : [];
+    let form_fields: any = a.form_fields;
+    if (typeof form_fields === "string") {
+      try { form_fields = form_fields.trim() ? JSON.parse(form_fields) : []; }
+      catch { return toast.error("Form fields must be valid JSON array"); }
+    }
+    if (!Array.isArray(form_fields)) form_fields = [];
     const payload = {
       title: a.title, body: a.body || null, cta_text: a.cta_text || null,
       placement: a.placement || "banner", image_url: a.image_url || null,
@@ -149,6 +155,11 @@ const Admin = () => {
       is_skippable: a.is_skippable !== false,
       skip_after_seconds: Number(a.skip_after_seconds) || 5,
       target_countries: tc,
+      campaign_type: a.campaign_type || "reward",
+      form_fields,
+      open_in_new_tab: a.open_in_new_tab !== false,
+      app_store_url: a.app_store_url || null,
+      play_store_url: a.play_store_url || null,
     };
     if (a.id) {
       const { error } = await (supabase as any).from("ads").update(payload).eq("id", a.id);
@@ -157,7 +168,7 @@ const Admin = () => {
       if (!payload.title) return toast.error("Title required");
       const { error } = await (supabase as any).from("ads").insert(payload);
       if (error) return toast.error(error.message);
-      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
+      setNewAd({ title: "", body: "", cta_text: "", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [], campaign_type: "reward", form_fields: "", open_in_new_tab: true, app_store_url: "", play_store_url: "" });
     }
     toast.success("Ad saved"); reload();
   }
