@@ -70,6 +70,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_leads: {
+        Row: {
+          ad_id: string
+          answers: Json
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ad_id: string
+          answers?: Json
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ad_id?: string
+          answers?: Json
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_connections: {
         Row: {
           created_at: string
@@ -99,16 +132,21 @@ export type Database = {
       }
       ads: {
         Row: {
+          app_store_url: string | null
           body: string | null
+          campaign_type: string
           created_at: string
           cta_text: string | null
           ends_at: string | null
+          form_fields: Json
           id: string
           image_url: string | null
           is_active: boolean
           is_skippable: boolean
           link_url: string | null
+          open_in_new_tab: boolean
           placement: string
+          play_store_url: string | null
           reward_swipes: number
           skip_after_seconds: number
           starts_at: string | null
@@ -119,16 +157,21 @@ export type Database = {
           weight: number
         }
         Insert: {
+          app_store_url?: string | null
           body?: string | null
+          campaign_type?: string
           created_at?: string
           cta_text?: string | null
           ends_at?: string | null
+          form_fields?: Json
           id?: string
           image_url?: string | null
           is_active?: boolean
           is_skippable?: boolean
           link_url?: string | null
+          open_in_new_tab?: boolean
           placement?: string
+          play_store_url?: string | null
           reward_swipes?: number
           skip_after_seconds?: number
           starts_at?: string | null
@@ -139,16 +182,21 @@ export type Database = {
           weight?: number
         }
         Update: {
+          app_store_url?: string | null
           body?: string | null
+          campaign_type?: string
           created_at?: string
           cta_text?: string | null
           ends_at?: string | null
+          form_fields?: Json
           id?: string
           image_url?: string | null
           is_active?: boolean
           is_skippable?: boolean
           link_url?: string | null
+          open_in_new_tab?: boolean
           placement?: string
+          play_store_url?: string | null
           reward_swipes?: number
           skip_after_seconds?: number
           starts_at?: string | null
@@ -476,6 +524,110 @@ export type Database = {
         }
         Relationships: []
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          order_id: string
+          product_id: string | null
+          quantity: number
+          unit_price_kes: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          order_id: string
+          product_id?: string | null
+          quantity?: number
+          unit_price_kes: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          unit_price_kes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          address: string | null
+          county: string | null
+          created_at: string
+          delivered_at: string | null
+          full_name: string
+          id: string
+          mpesa_payment_id: string | null
+          notes: string | null
+          paid_at: string | null
+          phone: string
+          shipped_at: string | null
+          status: string
+          sub_county: string | null
+          total_kes: number
+          town: string | null
+          tracking_code: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          county?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          full_name: string
+          id?: string
+          mpesa_payment_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          phone: string
+          shipped_at?: string | null
+          status?: string
+          sub_county?: string | null
+          total_kes?: number
+          town?: string | null
+          tracking_code?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          county?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          full_name?: string
+          id?: string
+          mpesa_payment_id?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          phone?: string
+          shipped_at?: string | null
+          status?: string
+          sub_county?: string | null
+          total_kes?: number
+          town?: string | null
+          tracking_code?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       otp_codes: {
         Row: {
           code_hash: string
@@ -602,15 +754,59 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price_kes: number
+          sort_order: number
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price_kes?: number
+          sort_order?: number
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price_kes?: number
+          sort_order?: number
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
           age_group: string | null
           bio: string | null
           bonus_swipes: number
+          career: string | null
           city: string | null
           conditions: string[] | null
           country: string | null
+          county: string | null
           created_at: string
           display_name: string
           drinking: string | null
@@ -648,6 +844,8 @@ export type Database = {
           relationship_goals: string | null
           religion: string | null
           smoking: string | null
+          sub_county: string | null
+          town: string | null
           updated_at: string
         }
         Insert: {
@@ -655,9 +853,11 @@ export type Database = {
           age_group?: string | null
           bio?: string | null
           bonus_swipes?: number
+          career?: string | null
           city?: string | null
           conditions?: string[] | null
           country?: string | null
+          county?: string | null
           created_at?: string
           display_name: string
           drinking?: string | null
@@ -695,6 +895,8 @@ export type Database = {
           relationship_goals?: string | null
           religion?: string | null
           smoking?: string | null
+          sub_county?: string | null
+          town?: string | null
           updated_at?: string
         }
         Update: {
@@ -702,9 +904,11 @@ export type Database = {
           age_group?: string | null
           bio?: string | null
           bonus_swipes?: number
+          career?: string | null
           city?: string | null
           conditions?: string[] | null
           country?: string | null
+          county?: string | null
           created_at?: string
           display_name?: string
           drinking?: string | null
@@ -742,6 +946,8 @@ export type Database = {
           relationship_goals?: string | null
           religion?: string | null
           smoking?: string | null
+          sub_county?: string | null
+          town?: string | null
           updated_at?: string
         }
         Relationships: []

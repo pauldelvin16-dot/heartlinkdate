@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Heart, Home, Sparkles, User as UserIcon, Shield, MessageCircle } from "lucide-react";
+import { Heart, Home, Sparkles, User as UserIcon, Shield, MessageCircle, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
@@ -8,6 +8,7 @@ const items = [
   { to: "/discover", icon: Home, label: "Discover", badgeKey: null as null | "messages" },
   { to: "/matches", icon: Sparkles, label: "Matches", badgeKey: "messages" as const },
   { to: "/connect", icon: Heart, label: "Connect", badgeKey: null },
+  { to: "/shop", icon: ShoppingBag, label: "Shop", badgeKey: null },
   { to: "/profile", icon: UserIcon, label: "Profile", badgeKey: null },
 ];
 

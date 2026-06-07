@@ -14,10 +14,10 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
   Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
-  Megaphone, Image as ImageIcon, Video, Sparkles,
+  Megaphone, Image as ImageIcon, Video, Sparkles, ShoppingBag, Truck,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests" | "ads" | "seo";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests" | "ads" | "leads" | "products" | "orders" | "seo";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -32,6 +32,9 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "packages", label: "Packages", icon: Package },
   { key: "requests", label: "Connection requests", icon: Inbox },
   { key: "ads", label: "Ads", icon: Megaphone },
+  { key: "leads", label: "Ad leads", icon: Inbox },
+  { key: "products", label: "Products", icon: Package },
+  { key: "orders", label: "Orders", icon: ShoppingBag },
   { key: "seo", label: "SEO", icon: Sparkles },
 ];
 
@@ -57,7 +60,11 @@ const Admin = () => {
   const [grantDays, setGrantDays] = useState(30);
   const [ads, setAds] = useState<any[]>([]);
   const [adStats, setAdStats] = useState<any[]>([]);
-  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
+  const [leads, setLeads] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [newProduct, setNewProduct] = useState<any>({ name: "", description: "", price_kes: 0, image_url: "", category: "", stock: 0, sort_order: 0, is_active: true });
+  const [newAd, setNewAd] = useState<any>({ title: "", body: "", cta_text: "", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [], campaign_type: "reward", form_fields: "", open_in_new_tab: true, app_store_url: "", play_store_url: "" });
 
   const [newC, setNewC] = useState({ label: "", whatsapp: "", email: "", phone: "", notes: "" });
   const [newPkg, setNewPkg] = useState({ name: "", description: "", amount: 299, duration_days: 30, features: "", is_popular: false });
@@ -67,7 +74,7 @@ const Admin = () => {
   useEffect(() => { reload(); }, []);
 
   async function reload() {
-    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1, ad1] = await Promise.all([
+    const [s1, smtp1, c1, p1, m1, t1, l1, mp1, pay1, pkg1, req1, ad1, lead1, prod1, ord1] = await Promise.all([
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("smtp_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("premium_contacts").select("*").order("created_at", { ascending: false }),
@@ -80,6 +87,9 @@ const Admin = () => {
       (supabase as any).from("mpesa_packages").select("*").order("sort_order"),
       (supabase as any).from("connection_requests").select("*").order("created_at", { ascending: false }).limit(100),
       (supabase as any).from("ads").select("*").order("created_at", { ascending: false }),
+      (supabase as any).from("ad_leads").select("*").order("created_at", { ascending: false }).limit(200),
+      (supabase as any).from("products").select("*").order("sort_order"),
+      (supabase as any).from("orders").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
     setS(s1.data); setSmtp(smtp1.data); setContacts(c1.data ?? []);
     setProfiles(p1.data ?? []); setMatches(m1.data ?? []); setTemplates(t1.data ?? []);
@@ -87,6 +97,7 @@ const Admin = () => {
     setMpesa(mp1.data); setPayments(pay1.data ?? []);
     setPackages(pkg1.data ?? []); setRequests(req1.data ?? []);
     setAds(ad1.data ?? []);
+    setLeads(lead1.data ?? []); setProducts(prod1.data ?? []); setOrders(ord1.data ?? []);
     const { data: stats } = await (supabase as any).rpc("ad_stats");
     setAdStats(stats ?? []);
   }
@@ -129,6 +140,12 @@ const Admin = () => {
       : typeof a.target_countries === "string"
         ? a.target_countries.split(",").map((x: string) => x.trim()).filter(Boolean)
         : [];
+    let form_fields: any = a.form_fields;
+    if (typeof form_fields === "string") {
+      try { form_fields = form_fields.trim() ? JSON.parse(form_fields) : []; }
+      catch { return toast.error("Form fields must be valid JSON array"); }
+    }
+    if (!Array.isArray(form_fields)) form_fields = [];
     const payload = {
       title: a.title, body: a.body || null, cta_text: a.cta_text || null,
       placement: a.placement || "banner", image_url: a.image_url || null,
@@ -138,6 +155,11 @@ const Admin = () => {
       is_skippable: a.is_skippable !== false,
       skip_after_seconds: Number(a.skip_after_seconds) || 5,
       target_countries: tc,
+      campaign_type: a.campaign_type || "reward",
+      form_fields,
+      open_in_new_tab: a.open_in_new_tab !== false,
+      app_store_url: a.app_store_url || null,
+      play_store_url: a.play_store_url || null,
     };
     if (a.id) {
       const { error } = await (supabase as any).from("ads").update(payload).eq("id", a.id);
@@ -146,11 +168,39 @@ const Admin = () => {
       if (!payload.title) return toast.error("Title required");
       const { error } = await (supabase as any).from("ads").insert(payload);
       if (error) return toast.error(error.message);
-      setNewAd({ title: "", body: "", cta_text: "Get 5 extra swipes", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [] });
+      setNewAd({ title: "", body: "", cta_text: "", placement: "banner", image_url: "", video_url: "", link_url: "", reward_swipes: 5, weight: 1, is_active: true, is_skippable: true, skip_after_seconds: 5, target_countries: [], campaign_type: "reward", form_fields: "", open_in_new_tab: true, app_store_url: "", play_store_url: "" });
     }
     toast.success("Ad saved"); reload();
   }
   async function delAd(id: string) { await (supabase as any).from("ads").delete().eq("id", id); reload(); }
+  async function saveProduct(p: any) {
+    const payload = {
+      name: p.name, description: p.description || null,
+      price_kes: Number(p.price_kes) || 0, image_url: p.image_url || null,
+      category: p.category || null, stock: Number(p.stock) || 0,
+      sort_order: Number(p.sort_order) || 0, is_active: p.is_active !== false,
+    };
+    if (!payload.name) return toast.error("Name required");
+    if (p.id) {
+      const { error } = await (supabase as any).from("products").update(payload).eq("id", p.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await (supabase as any).from("products").insert(payload);
+      if (error) return toast.error(error.message);
+      setNewProduct({ name: "", description: "", price_kes: 0, image_url: "", category: "", stock: 0, sort_order: 0, is_active: true });
+    }
+    toast.success("Product saved"); reload();
+  }
+  async function delProduct(id: string) { await (supabase as any).from("products").delete().eq("id", id); reload(); }
+  async function updateOrderStatus(o: any, status: string) {
+    const updates: any = { status };
+    if (status === "paid" && !o.paid_at) updates.paid_at = new Date().toISOString();
+    if (status === "shipped" && !o.shipped_at) updates.shipped_at = new Date().toISOString();
+    if (status === "delivered" && !o.delivered_at) updates.delivered_at = new Date().toISOString();
+    const { error } = await (supabase as any).from("orders").update(updates).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Order ${status}`); reload();
+  }
   async function saveSmtp() {
     const port = Number(smtp.port) || 587;
     const { error } = await supabase.from("smtp_settings").update({
@@ -619,6 +669,29 @@ const Admin = () => {
                   </Field>
                   <label className="flex items-end gap-2 pb-2 text-sm"><Switch checked={newAd.is_skippable !== false} onCheckedChange={v => setNewAd({ ...newAd, is_skippable: v })} /> Skippable</label>
                 </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Field label="Campaign type">
+                    <Select value={newAd.campaign_type} onValueChange={v => setNewAd({ ...newAd, campaign_type: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reward">Reward (bonus swipes)</SelectItem>
+                        <SelectItem value="traffic">Traffic (drive clicks)</SelectItem>
+                        <SelectItem value="engagement">Engagement</SelectItem>
+                        <SelectItem value="awareness">Awareness</SelectItem>
+                        <SelectItem value="leads">Lead generation (form)</SelectItem>
+                        <SelectItem value="app_promotion">App promotion</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="App Store URL (iOS)"><Input value={newAd.app_store_url} onChange={e => setNewAd({ ...newAd, app_store_url: e.target.value })} placeholder="https://apps.apple.com/…" /></Field>
+                  <Field label="Play Store URL (Android)"><Input value={newAd.play_store_url} onChange={e => setNewAd({ ...newAd, play_store_url: e.target.value })} placeholder="https://play.google.com/…" /></Field>
+                </div>
+                {newAd.campaign_type === "leads" && (
+                  <Field label='Form fields (JSON array). Default: name+email+phone. Example: [{"name":"name","label":"Full name","type":"text","required":true},{"name":"email","label":"Email","type":"email","required":true}]'>
+                    <Textarea rows={3} className="font-mono text-xs" value={newAd.form_fields} onChange={e => setNewAd({ ...newAd, form_fields: e.target.value })} />
+                  </Field>
+                )}
+                <label className="flex items-center gap-2 text-sm"><Switch checked={newAd.open_in_new_tab !== false} onCheckedChange={v => setNewAd({ ...newAd, open_in_new_tab: v })} /> Open link in new browser tab</label>
                 <Button size="sm" onClick={() => saveAd(newAd)} className="gradient-primary text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Create ad</Button>
               </div>
 
@@ -709,6 +782,34 @@ const Admin = () => {
                         <Switch checked={a.is_skippable !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, is_skippable: v } : x))} /> Skippable
                       </label>
                     </div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <Field label="Campaign type">
+                        <Select value={a.campaign_type || "reward"} onValueChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, campaign_type: v } : x))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="reward">Reward</SelectItem>
+                            <SelectItem value="traffic">Traffic</SelectItem>
+                            <SelectItem value="engagement">Engagement</SelectItem>
+                            <SelectItem value="awareness">Awareness</SelectItem>
+                            <SelectItem value="leads">Leads</SelectItem>
+                            <SelectItem value="app_promotion">App promotion</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="App Store URL"><Input value={a.app_store_url ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, app_store_url: e.target.value } : x))} /></Field>
+                      <Field label="Play Store URL"><Input value={a.play_store_url ?? ""} onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, play_store_url: e.target.value } : x))} /></Field>
+                    </div>
+                    {a.campaign_type === "leads" && (
+                      <Field label="Form fields (JSON)">
+                        <Textarea rows={3} className="font-mono text-xs"
+                          value={typeof a.form_fields === "string" ? a.form_fields : JSON.stringify(a.form_fields ?? [], null, 2)}
+                          onChange={e => setAds(ads.map(x => x.id === a.id ? { ...x, form_fields: e.target.value } : x))} />
+                      </Field>
+                    )}
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={a.open_in_new_tab !== false} onCheckedChange={v => setAds(ads.map(x => x.id === a.id ? { ...x, open_in_new_tab: v } : x))} />
+                      Open link in new browser tab
+                    </label>
                     <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 p-3">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Preview ({a.placement})</p>
                       <div className="flex items-center gap-3">
@@ -728,6 +829,110 @@ const Admin = () => {
               </div>
             </Section>
           )}
+
+          {tab === "leads" && (
+            <Section title="Ad leads" subtitle={`${leads.length} captured leads from your Lead-gen ads.`}>
+              <div className="overflow-hidden rounded-xl border border-border bg-background">
+                {leads.map(l => {
+                  const ad = ads.find(a => a.id === l.ad_id);
+                  return (
+                    <div key={l.id} className="border-b border-border p-3 text-sm last:border-0">
+                      <div className="flex items-center justify-between">
+                        <strong>{l.name || l.email || l.phone || "Anonymous"}</strong>
+                        <span className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{ad?.title ?? l.ad_id.slice(0,8)} · {l.email ?? "—"} · {l.phone ?? "—"}</p>
+                      {Object.keys(l.answers ?? {}).length > 0 && (
+                        <pre className="mt-1 overflow-x-auto rounded bg-muted/40 p-2 text-[11px]">{JSON.stringify(l.answers, null, 2)}</pre>
+                      )}
+                    </div>
+                  );
+                })}
+                {leads.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No leads yet.</p>}
+              </div>
+            </Section>
+          )}
+
+          {tab === "products" && (
+            <Section title="Shop products" subtitle="Items shown on the public Shop page. Set stock to 0 to hide buying.">
+              <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 space-y-2">
+                <p className="font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> Add product</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Field label="Name"><Input value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} /></Field>
+                  <Field label="Category"><Input value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} placeholder="Electronics, Fashion…" /></Field>
+                </div>
+                <Field label="Description"><Textarea rows={2} value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} /></Field>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  <Field label="Price (KES)"><Input type="number" value={newProduct.price_kes} onChange={e => setNewProduct({ ...newProduct, price_kes: e.target.value })} /></Field>
+                  <Field label="Stock"><Input type="number" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} /></Field>
+                  <Field label="Sort"><Input type="number" value={newProduct.sort_order} onChange={e => setNewProduct({ ...newProduct, sort_order: e.target.value })} /></Field>
+                  <Field label="Image URL"><Input value={newProduct.image_url} onChange={e => setNewProduct({ ...newProduct, image_url: e.target.value })} /></Field>
+                </div>
+                <Button size="sm" onClick={() => saveProduct(newProduct)} className="gradient-primary text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Add product</Button>
+              </div>
+              <div className="space-y-2">
+                {products.map(p => (
+                  <div key={p.id} className="rounded-xl border border-border bg-background p-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      {p.image_url && <img src={p.image_url} className="h-14 w-14 rounded-lg object-cover" alt="" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{p.name} <Badge variant="secondary">KES {p.price_kes}</Badge></p>
+                        <p className="text-xs text-muted-foreground truncate">{p.category} · stock {p.stock}</p>
+                      </div>
+                      <Switch checked={p.is_active} onCheckedChange={v => setProducts(products.map(x => x.id === p.id ? { ...x, is_active: v } : x))} />
+                      <Button size="icon" variant="ghost" onClick={() => delProduct(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Field label="Name"><Input value={p.name} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, name: e.target.value } : x))} /></Field>
+                      <Field label="Image URL"><Input value={p.image_url ?? ""} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, image_url: e.target.value } : x))} /></Field>
+                    </div>
+                    <Field label="Description"><Textarea rows={2} value={p.description ?? ""} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, description: e.target.value } : x))} /></Field>
+                    <div className="grid gap-2 sm:grid-cols-4">
+                      <Field label="Price"><Input type="number" value={p.price_kes} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, price_kes: e.target.value } : x))} /></Field>
+                      <Field label="Stock"><Input type="number" value={p.stock} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, stock: e.target.value } : x))} /></Field>
+                      <Field label="Category"><Input value={p.category ?? ""} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, category: e.target.value } : x))} /></Field>
+                      <Field label="Sort"><Input type="number" value={p.sort_order} onChange={e => setProducts(products.map(x => x.id === p.id ? { ...x, sort_order: e.target.value } : x))} /></Field>
+                    </div>
+                    <Button size="sm" onClick={() => saveProduct(p)} className="gradient-primary text-primary-foreground"><CheckCircle2 className="mr-1 h-4 w-4" /> Save</Button>
+                  </div>
+                ))}
+                {products.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No products yet.</p>}
+              </div>
+            </Section>
+          )}
+
+          {tab === "orders" && (
+            <Section title="Shop orders" subtitle={`${orders.length} orders. Move them through paid → shipped → delivered.`}>
+              <div className="space-y-2">
+                {orders.map(o => (
+                  <div key={o.id} className="rounded-xl border border-border bg-background p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold">#{o.id.slice(0,8).toUpperCase()} · <span className="text-primary">KES {o.total_kes.toLocaleString()}</span></p>
+                        <p className="text-xs text-muted-foreground">{o.full_name} · {o.phone} · {[o.town, o.sub_county, o.county].filter(Boolean).join(", ")}</p>
+                        {o.address && <p className="text-xs text-muted-foreground">{o.address}</p>}
+                        <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>
+                      </div>
+                      <Badge className="capitalize">{o.status}</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {["paid","shipped","delivered","cancelled"].map(st => (
+                        <Button key={st} size="sm" variant={o.status === st ? "default" : "outline"} onClick={() => updateOrderStatus(o, st)}>
+                          {st === "paid" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                          {st === "shipped" && <Truck className="mr-1 h-3 w-3" />}
+                          {st === "delivered" && <Home className="mr-1 h-3 w-3" />}
+                          {st === "cancelled" && <X className="mr-1 h-3 w-3" />}
+                          Mark {st}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {orders.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No orders yet.</p>}
+              </div>
+            </Section>
+          )}
+
 
           {tab === "seo" && (
             <Section title="SEO & Search Console" subtitle="Meta tags, favicon, Google site verification and sitemap.">
