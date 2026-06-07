@@ -669,6 +669,29 @@ const Admin = () => {
                   </Field>
                   <label className="flex items-end gap-2 pb-2 text-sm"><Switch checked={newAd.is_skippable !== false} onCheckedChange={v => setNewAd({ ...newAd, is_skippable: v })} /> Skippable</label>
                 </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Field label="Campaign type">
+                    <Select value={newAd.campaign_type} onValueChange={v => setNewAd({ ...newAd, campaign_type: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="reward">Reward (bonus swipes)</SelectItem>
+                        <SelectItem value="traffic">Traffic (drive clicks)</SelectItem>
+                        <SelectItem value="engagement">Engagement</SelectItem>
+                        <SelectItem value="awareness">Awareness</SelectItem>
+                        <SelectItem value="leads">Lead generation (form)</SelectItem>
+                        <SelectItem value="app_promotion">App promotion</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="App Store URL (iOS)"><Input value={newAd.app_store_url} onChange={e => setNewAd({ ...newAd, app_store_url: e.target.value })} placeholder="https://apps.apple.com/…" /></Field>
+                  <Field label="Play Store URL (Android)"><Input value={newAd.play_store_url} onChange={e => setNewAd({ ...newAd, play_store_url: e.target.value })} placeholder="https://play.google.com/…" /></Field>
+                </div>
+                {newAd.campaign_type === "leads" && (
+                  <Field label='Form fields (JSON array). Default: name+email+phone. Example: [{"name":"name","label":"Full name","type":"text","required":true},{"name":"email","label":"Email","type":"email","required":true}]'>
+                    <Textarea rows={3} className="font-mono text-xs" value={newAd.form_fields} onChange={e => setNewAd({ ...newAd, form_fields: e.target.value })} />
+                  </Field>
+                )}
+                <label className="flex items-center gap-2 text-sm"><Switch checked={newAd.open_in_new_tab !== false} onCheckedChange={v => setNewAd({ ...newAd, open_in_new_tab: v })} /> Open link in new browser tab</label>
                 <Button size="sm" onClick={() => saveAd(newAd)} className="gradient-primary text-primary-foreground"><Plus className="mr-1 h-4 w-4" /> Create ad</Button>
               </div>
 
