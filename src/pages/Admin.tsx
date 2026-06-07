@@ -173,6 +173,34 @@ const Admin = () => {
     toast.success("Ad saved"); reload();
   }
   async function delAd(id: string) { await (supabase as any).from("ads").delete().eq("id", id); reload(); }
+  async function saveProduct(p: any) {
+    const payload = {
+      name: p.name, description: p.description || null,
+      price_kes: Number(p.price_kes) || 0, image_url: p.image_url || null,
+      category: p.category || null, stock: Number(p.stock) || 0,
+      sort_order: Number(p.sort_order) || 0, is_active: p.is_active !== false,
+    };
+    if (!payload.name) return toast.error("Name required");
+    if (p.id) {
+      const { error } = await (supabase as any).from("products").update(payload).eq("id", p.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await (supabase as any).from("products").insert(payload);
+      if (error) return toast.error(error.message);
+      setNewProduct({ name: "", description: "", price_kes: 0, image_url: "", category: "", stock: 0, sort_order: 0, is_active: true });
+    }
+    toast.success("Product saved"); reload();
+  }
+  async function delProduct(id: string) { await (supabase as any).from("products").delete().eq("id", id); reload(); }
+  async function updateOrderStatus(o: any, status: string) {
+    const updates: any = { status };
+    if (status === "paid" && !o.paid_at) updates.paid_at = new Date().toISOString();
+    if (status === "shipped" && !o.shipped_at) updates.shipped_at = new Date().toISOString();
+    if (status === "delivered" && !o.delivered_at) updates.delivered_at = new Date().toISOString();
+    const { error } = await (supabase as any).from("orders").update(updates).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Order ${status}`); reload();
+  }
   async function saveSmtp() {
     const port = Number(smtp.port) || 587;
     const { error } = await supabase.from("smtp_settings").update({
