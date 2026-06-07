@@ -14,10 +14,10 @@ import { toast } from "sonner";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
   Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
-  Megaphone, Image as ImageIcon, Video, Sparkles,
+  Megaphone, Image as ImageIcon, Video, Sparkles, ShoppingBag, Truck,
 } from "lucide-react";
 
-type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests" | "ads" | "seo";
+type TabKey = "site" | "countries" | "smtp" | "emails" | "contacts" | "users" | "matches" | "locations" | "mpesa" | "packages" | "requests" | "ads" | "leads" | "products" | "orders" | "seo";
 
 const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "site", label: "Site", icon: Settings },
@@ -32,6 +32,9 @@ const NAV: { key: TabKey; label: string; icon: any }[] = [
   { key: "packages", label: "Packages", icon: Package },
   { key: "requests", label: "Connection requests", icon: Inbox },
   { key: "ads", label: "Ads", icon: Megaphone },
+  { key: "leads", label: "Ad leads", icon: Inbox },
+  { key: "products", label: "Products", icon: Package },
+  { key: "orders", label: "Orders", icon: ShoppingBag },
   { key: "seo", label: "SEO", icon: Sparkles },
 ];
 
