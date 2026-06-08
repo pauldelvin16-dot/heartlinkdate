@@ -13,6 +13,7 @@ import {
   CONDITIONS, INTERESTS, RELIGIONS, RELATIONSHIP_GOALS, SMOKING_OPTS, DRINKING_OPTS,
   CHILDREN_OPTS, EDUCATION_OPTS, FINANCIAL_OPTS, LANGUAGES,
 } from "@/lib/constants";
+import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf, CAREERS } from "@/lib/kenya";
 import { Camera, Loader2, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -24,6 +25,7 @@ const Onboarding = () => {
   const [p, setP] = useState<any>({
     display_name: "", bio: "", age: "25", gender: "", orientation: "", interested_in: "",
     country: "", city: "", ethnicity: "", age_group: "adult",
+    county: "", sub_county: "", town: "", career: "", career_custom: "",
     religion: "", relationship_goals: "", smoking: "", drinking: "", has_children: "",
     education: "", financial_status: "", height_cm: "",
     languages: [], conditions: [], interests: [], photos: [],
@@ -84,10 +86,14 @@ const Onboarding = () => {
       toast.error("Age must be between 18 and 120."); return;
     }
     setBusy(true);
+    const careerFinal = (p.career === "Other" || p.career === "Matatu Operator")
+      ? [p.career, p.career_custom].filter(Boolean).join(" — ")
+      : (p.career || null);
     const { error } = await supabase.from("profiles").update({
       display_name: p.display_name, bio: p.bio, age: ageNum,
       gender: p.gender, orientation: p.orientation, interested_in: p.interested_in,
       country: p.country, city: p.city, region: p.region || null, ethnicity: p.ethnicity, age_group: p.age_group,
+      county: p.county || null, sub_county: p.sub_county || null, town: p.town || null, career: careerFinal,
       religion: p.religion || null, relationship_goals: p.relationship_goals || null,
       smoking: p.smoking || null, drinking: p.drinking || null, has_children: p.has_children || null,
       education: p.education || null, financial_status: p.financial_status || null,
@@ -97,7 +103,7 @@ const Onboarding = () => {
       preferred_genders: p.preferred_genders, preferred_ethnicities: p.preferred_ethnicities,
       preferred_religions: p.preferred_religions, preferred_countries: p.preferred_countries,
       preferred_relationship_goals: p.preferred_relationship_goals,
-    }).eq("id", user.id);
+    } as any).eq("id", user.id);
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Profile saved!");
@@ -154,6 +160,60 @@ const Onboarding = () => {
             <Field label="Height (cm)"><Input type="number" value={p.height_cm} onChange={e => setP({ ...p, height_cm: e.target.value })} /></Field>
           </div>
         </Section>
+
+        {p.country === "Kenya" && (
+          <Section title="🇰🇪 Where in Kenya?">
+            <p className="-mt-2 mb-3 text-xs text-muted-foreground">Helps us match you with people near you and deliver shop orders.</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="County">
+                <Select value={p.county || ""} onValueChange={v => setP({ ...p, county: v, sub_county: "", town: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Select county" /></SelectTrigger>
+                  <SelectContent className="max-h-72">{KENYA_COUNTY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              {p.county && (
+                <Field label="Sub-county">
+                  <Select value={p.sub_county || ""} onValueChange={v => setP({ ...p, sub_county: v, town: "" })}>
+                    <SelectTrigger><SelectValue placeholder="Select sub-county" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{subCountiesOf(p.county).map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </Field>
+              )}
+              {p.sub_county && (
+                <Field label="Town / Estate">
+                  {townsOf(p.county, p.sub_county).length > 0 ? (
+                    <Select value={p.town || ""} onValueChange={v => setP({ ...p, town: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select town" /></SelectTrigger>
+                      <SelectContent className="max-h-72">{townsOf(p.county, p.sub_county).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={p.town || ""} placeholder="Type your town" onChange={e => setP({ ...p, town: e.target.value })} />
+                  )}
+                </Field>
+              )}
+            </div>
+          </Section>
+        )}
+
+        <Section title="Career">
+          <p className="-mt-2 mb-3 text-xs text-muted-foreground">Pick what fits — or write your matatu sacco / employer if “Other”.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Career / Employer">
+              <Picker value={p.career} onChange={v => setP({ ...p, career: v })} options={CAREERS} />
+            </Field>
+            {p.career === "Other" && (
+              <Field label="Tell us more">
+                <Input value={p.career_custom || ""} placeholder="e.g. Embassava sacco, Tahmeed driver" onChange={e => setP({ ...p, career_custom: e.target.value })} />
+              </Field>
+            )}
+            {p.career === "Matatu Operator" && (
+              <Field label="Sacco / Route">
+                <Input value={p.career_custom || ""} placeholder="e.g. Super Metro, Route 105" onChange={e => setP({ ...p, career_custom: e.target.value })} />
+              </Field>
+            )}
+          </div>
+        </Section>
+
 
         <Section title="Lifestyle">
           <div className="grid gap-3 sm:grid-cols-2">

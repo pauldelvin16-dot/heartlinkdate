@@ -36,23 +36,28 @@ Deno.serve(async (req) => {
     const auth = await authed(req).auth.getUser();
     const user = auth.data.user;
     if (!user) throw new Error("Sign in required");
-    const { phone, package_id } = await req.json().catch(() => ({}));
+    const { phone, package_id, order_id } = await req.json().catch(() => ({}));
     const sb = admin();
-    const [{ data: settings }, { data: profile }, { data: pkg }] = await Promise.all([
+    const [{ data: settings }, { data: profile }, { data: pkg }, { data: order }] = await Promise.all([
       sb.from("mpesa_settings").select("*").eq("id", 1).maybeSingle(),
       sb.from("profiles").select("phone").eq("id", user.id).maybeSingle(),
       package_id ? sb.from("mpesa_packages").select("*").eq("id", package_id).eq("is_active", true).maybeSingle() : Promise.resolve({ data: null }),
+      order_id ? sb.from("orders").select("*").eq("id", order_id).eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
     ]);
     if (!settings?.is_active) throw new Error("M-Pesa is not enabled by the admin yet");
     if (!settings.consumer_key || !settings.consumer_secret || !settings.pass_key || !settings.shortcode) throw new Error("M-Pesa admin settings are incomplete");
-    const mpesaPhone = normalizePhone(phone || profile?.phone || "");
-    const amount = Number(pkg?.amount ?? settings.amount ?? 1);
+    if (order_id && !order) throw new Error("Order not found");
+    const mpesaPhone = normalizePhone(phone || order?.phone || profile?.phone || "");
+    const amount = Number(order?.total_kes ?? pkg?.amount ?? settings.amount ?? 1);
+    if (!amount || amount < 1) throw new Error("Invalid amount");
     const duration_days = Number(pkg?.duration_days ?? 30);
     const base = settings.environment === "production" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
     const ts = timestamp();
     const password = btoa(`${settings.shortcode}${settings.pass_key}${ts}`);
     const accessToken = await token(base, settings.consumer_key, settings.consumer_secret);
     const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mpesa-callback`;
+    const accountRef = order_id ? `ORDER-${String(order.id).slice(0, 8)}` : (settings.account_reference || "Premium");
+    const desc = order_id ? `Order payment` : (settings.description || "Premium unlock");
     const payload = {
       BusinessShortCode: settings.shortcode,
       Password: password,
@@ -63,8 +68,8 @@ Deno.serve(async (req) => {
       PartyB: settings.shortcode,
       PhoneNumber: mpesaPhone,
       CallBackURL: callbackUrl,
-      AccountReference: settings.account_reference || "Premium",
-      TransactionDesc: settings.description || "Premium unlock",
+      AccountReference: accountRef,
+      TransactionDesc: desc,
     };
     const res = await fetch(`${base}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
@@ -78,6 +83,7 @@ Deno.serve(async (req) => {
       phone: mpesaPhone,
       amount,
       package_id: pkg?.id ?? null,
+      order_id: order?.id ?? null,
       duration_days,
       status: "processing",
       checkout_request_id: raw.CheckoutRequestID,
@@ -85,6 +91,7 @@ Deno.serve(async (req) => {
       raw_response: raw,
     }).select("*").single();
     if (error) throw error;
+
     return new Response(JSON.stringify({ ok: true, payment }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 400, headers: { ...cors, "content-type": "application/json" } });

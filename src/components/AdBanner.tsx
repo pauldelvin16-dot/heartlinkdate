@@ -103,39 +103,35 @@ export function AdBanner({ onReward, userCountry }: { onReward?: (n: number) => 
   function secondsLeft(a: Ad) { const elapsed = (now - shownTime(a.id)) / 1000; return Math.max(0, (a.skip_after_seconds ?? 5) - Math.floor(elapsed)); }
   function canSkip(a: Ad) { return a.is_skippable !== false ? true : secondsLeft(a) <= 0; }
 
-  async function handleAdAction(a: Ad) {
+  function handleAdAction(a: Ad) {
     const type = a.campaign_type || "reward";
 
     // Lead form: open modal, don't redirect
     if (type === "leads") { setLeadAd(a); setLeadForm({}); return; }
 
-    // Reward: grant swipes (requires sign-in), then open optional link
+    // CRITICAL: open the link IMMEDIATELY inside the user gesture to avoid popup blockers,
+    // then fire-and-forget the RPC (don't await before opening).
+    let target: string | null = null;
+    if (type === "app_promotion") target = detectStoreUrl(a);
+    else if (a.link_url) target = a.link_url;
+    if (target) openExternal(target, a.open_in_new_tab !== false);
+
+    // Reward: grant swipes in the background
     if (type === "reward") {
-      if (!user) { if (a.link_url) openExternal(a.link_url, a.open_in_new_tab !== false); return; }
-      const { data, error } = await (supabase as any).rpc("click_ad", { _ad_id: a.id });
-      if (error) return toast.error(error.message);
-      const granted = (data as number) ?? a.reward_swipes;
-      toast.success(`+${granted} bonus swipes added! 🎉`);
-      onReward?.(granted);
-      if (a.link_url) openExternal(a.link_url, a.open_in_new_tab !== false);
+      if (!user) { setHiddenIds(s => new Set([...s, a.id])); return; }
+      (supabase as any).rpc("click_ad", { _ad_id: a.id }).then(({ data, error }: any) => {
+        if (error) return toast.error(error.message);
+        const granted = (data as number) ?? a.reward_swipes;
+        toast.success(`+${granted} bonus swipes added! 🎉`);
+        onReward?.(granted);
+      });
       setHiddenIds(s => new Set([...s, a.id]));
       return;
     }
 
-    // App promotion: smart store redirect
-    if (type === "app_promotion") {
-      // Log click for analytics
-      if (user) (supabase as any).rpc("click_ad", { _ad_id: a.id }).catch(() => {});
-      const target = detectStoreUrl(a);
-      if (target) openExternal(target, true);
-      setHiddenIds(s => new Set([...s, a.id]));
-      return;
-    }
-
-    // Traffic / Engagement / Awareness: log click, open link if provided
+    // Traffic / Engagement / Awareness / App promotion: log click in background
     if (user) (supabase as any).rpc("click_ad", { _ad_id: a.id }).catch(() => {});
-    if (a.link_url) openExternal(a.link_url, a.open_in_new_tab !== false);
-    if (type === "traffic" || type === "engagement") setHiddenIds(s => new Set([...s, a.id]));
+    if (type === "traffic" || type === "engagement" || type === "app_promotion") setHiddenIds(s => new Set([...s, a.id]));
   }
 
   async function submitLead(e: React.FormEvent) {

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle2, Loader2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf } from "@/lib/kenya";
@@ -54,13 +54,15 @@ export default function Shop() {
     setCart(c => c.map(i => i.id === id ? { ...i, qty: q } : i));
   }
 
+  const [stkStatus, setStkStatus] = useState<"idle" | "sending" | "waiting" | "paid" | "failed">("idle");
+
   async function placeOrder() {
     if (!user) return nav("/auth");
     if (!cart.length) return toast.error("Cart is empty");
     if (!form.full_name || !form.phone || !form.county) return toast.error("Name, phone and county required");
     setBusy(true);
     const { data: order, error } = await (supabase as any).from("orders").insert({
-      user_id: user.id, status: "pending", total_kes: total,
+      user_id: user.id, status: "pending", payment_status: "pending", total_kes: total,
       full_name: form.full_name, phone: form.phone,
       county: form.county, sub_county: form.sub_county || null, town: form.town || null,
       address: form.address || null, notes: form.notes || null,
@@ -68,11 +70,46 @@ export default function Shop() {
     if (error) { setBusy(false); return toast.error(error.message); }
     const items = cart.map(c => ({ order_id: order.id, product_id: c.id, name: c.name, unit_price_kes: c.price_kes, quantity: c.qty, image_url: c.image_url }));
     const { error: e2 } = await (supabase as any).from("order_items").insert(items);
-    setBusy(false);
-    if (e2) return toast.error(e2.message);
-    setCart([]); setCheckout(false);
-    toast.success("Order placed! Track it under My Orders.");
-    nav("/orders");
+    if (e2) { setBusy(false); return toast.error(e2.message); }
+
+    // Initiate instant M-Pesa STK push
+    setStkStatus("sending");
+    const { data: stk, error: stkErr } = await supabase.functions.invoke("initiate-mpesa", {
+      body: { phone: form.phone, order_id: order.id },
+    });
+    if (stkErr || (stk as any)?.error) {
+      setBusy(false); setStkStatus("failed");
+      return toast.error((stk as any)?.error || stkErr?.message || "Failed to start M-Pesa");
+    }
+    const paymentId = (stk as any)?.payment?.id;
+    toast.success("STK push sent. Enter your M-Pesa PIN on your phone.");
+    setStkStatus("waiting");
+
+    // Poll up to 60s
+    let attempts = 0;
+    const tick = async () => {
+      attempts++;
+      const { data: pay } = await (supabase as any).from("mpesa_payments").select("status").eq("id", paymentId).maybeSingle();
+      if (pay?.status === "paid") {
+        setStkStatus("paid"); setBusy(false); setCart([]); setCheckout(false);
+        toast.success("Payment received! Order confirmed.");
+        return nav("/orders");
+      }
+      if (pay?.status === "failed" || pay?.status === "cancelled") {
+        // Fallback to poll edge function once
+        await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id: paymentId } }).catch(() => {});
+        setStkStatus("failed"); setBusy(false);
+        return toast.error("M-Pesa payment failed. You can retry from My Orders.");
+      }
+      if (attempts >= 30) {
+        await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id: paymentId } }).catch(() => {});
+        setStkStatus("idle"); setBusy(false); setCheckout(false);
+        toast("Still waiting. We'll confirm shortly — check My Orders.");
+        return nav("/orders");
+      }
+      setTimeout(tick, 2000);
+    };
+    setTimeout(tick, 2500);
   }
 
   return (
@@ -80,7 +117,7 @@ export default function Shop() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="h-6 w-6 text-primary" /> Shop</h1>
-          <p className="text-sm text-muted-foreground">Cash on delivery or M-Pesa. Delivery across Kenya.</p>
+          <p className="text-sm text-muted-foreground">Instant M-Pesa payment · Delivery across Kenya.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => nav("/orders")}>My orders</Button>
@@ -193,13 +230,13 @@ export default function Shop() {
             <div><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
 
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
-              <p className="font-semibold">Order summary</p>
+              <p className="font-semibold flex items-center gap-1"><Smartphone className="h-4 w-4 text-primary" /> Instant M-Pesa payment</p>
               <p className="text-muted-foreground">{cart.length} item(s) · <strong className="text-foreground">KES {total.toLocaleString()}</strong></p>
-              <p className="mt-1 text-xs text-muted-foreground">Pay on delivery, or pay via M-Pesa after order confirmation. Admin will mark your order shipped once dispatched.</p>
+              <p className="mt-1 text-xs text-muted-foreground">An STK push will be sent to your phone. Enter your M-Pesa PIN to confirm. Order ships only after payment is received.</p>
             </div>
 
             <Button disabled={busy} onClick={placeOrder} className="w-full gradient-primary text-primary-foreground">
-              <CheckCircle2 className="mr-1 h-4 w-4" /> {busy ? "Placing…" : "Place order"}
+              {busy ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> {stkStatus === "waiting" ? "Waiting for M-Pesa PIN…" : stkStatus === "sending" ? "Sending STK push…" : "Placing…"}</> : <><Smartphone className="mr-1 h-4 w-4" /> Pay KES {total.toLocaleString()} via M-Pesa</>}
             </Button>
           </div>
         </SheetContent>
