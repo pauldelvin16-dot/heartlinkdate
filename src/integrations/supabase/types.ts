@@ -406,6 +406,7 @@ export type Database = {
           duration_days: number
           id: string
           merchant_request_id: string | null
+          order_id: string | null
           package_id: string | null
           phone: string
           raw_response: Json | null
@@ -422,6 +423,7 @@ export type Database = {
           duration_days?: number
           id?: string
           merchant_request_id?: string | null
+          order_id?: string | null
           package_id?: string | null
           phone: string
           raw_response?: Json | null
@@ -438,6 +440,7 @@ export type Database = {
           duration_days?: number
           id?: string
           merchant_request_id?: string | null
+          order_id?: string | null
           package_id?: string | null
           phone?: string
           raw_response?: Json | null
@@ -447,7 +450,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mpesa_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mpesa_settings: {
         Row: {
@@ -576,6 +587,7 @@ export type Database = {
           mpesa_payment_id: string | null
           notes: string | null
           paid_at: string | null
+          payment_status: string
           phone: string
           shipped_at: string | null
           status: string
@@ -596,6 +608,7 @@ export type Database = {
           mpesa_payment_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          payment_status?: string
           phone: string
           shipped_at?: string | null
           status?: string
@@ -616,6 +629,7 @@ export type Database = {
           mpesa_payment_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          payment_status?: string
           phone?: string
           shipped_at?: string | null
           status?: string
@@ -1236,6 +1250,10 @@ export type Database = {
       }
       log_ad_impression: {
         Args: { _ad_id: string; _country?: string }
+        Returns: undefined
+      }
+      mark_order_paid_for_payment: {
+        Args: { _order_id: string; _payment_id: string }
         Returns: undefined
       }
       mpesa_mark_paid_and_grant: {
