@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     if (raw.ResultCode === "0") status = "paid";
     else if (raw.ResultCode != null && !["1032", "1037"].includes(String(raw.ResultCode))) status = "failed";
     const { data: updated } = await sb.from("mpesa_payments").update({ status, result_code: String(raw.ResultCode ?? ""), result_desc: raw.ResultDesc || raw.ResponseDescription, raw_response: raw }).eq("id", payment.id).select("*").single();
-    if (status === "paid") await grantPremium(sb, user.id, payment.id);
+    if (status === "paid") await grantForPayment(sb, updated || payment);
     return new Response(JSON.stringify({ ok: true, payment: updated || payment }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), { status: 400, headers: { ...cors, "content-type": "application/json" } });
