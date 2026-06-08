@@ -230,13 +230,13 @@ export default function Shop() {
             <div><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
 
             <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
-              <p className="font-semibold">Order summary</p>
+              <p className="font-semibold flex items-center gap-1"><Smartphone className="h-4 w-4 text-primary" /> Instant M-Pesa payment</p>
               <p className="text-muted-foreground">{cart.length} item(s) · <strong className="text-foreground">KES {total.toLocaleString()}</strong></p>
-              <p className="mt-1 text-xs text-muted-foreground">Pay on delivery, or pay via M-Pesa after order confirmation. Admin will mark your order shipped once dispatched.</p>
+              <p className="mt-1 text-xs text-muted-foreground">An STK push will be sent to your phone. Enter your M-Pesa PIN to confirm. Order ships only after payment is received.</p>
             </div>
 
             <Button disabled={busy} onClick={placeOrder} className="w-full gradient-primary text-primary-foreground">
-              <CheckCircle2 className="mr-1 h-4 w-4" /> {busy ? "Placing…" : "Place order"}
+              {busy ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> {stkStatus === "waiting" ? "Waiting for M-Pesa PIN…" : stkStatus === "sending" ? "Sending STK push…" : "Placing…"}</> : <><Smartphone className="mr-1 h-4 w-4" /> Pay KES {total.toLocaleString()} via M-Pesa</>}
             </Button>
           </div>
         </SheetContent>
