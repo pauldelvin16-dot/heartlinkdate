@@ -86,10 +86,12 @@ const Onboarding = () => {
       toast.error("Age must be between 18 and 120."); return;
     }
     setBusy(true);
+    const careerFinal = p.career === "Other" ? (p.career_custom || null) : (p.career || null);
     const { error } = await supabase.from("profiles").update({
       display_name: p.display_name, bio: p.bio, age: ageNum,
       gender: p.gender, orientation: p.orientation, interested_in: p.interested_in,
       country: p.country, city: p.city, region: p.region || null, ethnicity: p.ethnicity, age_group: p.age_group,
+      county: p.county || null, sub_county: p.sub_county || null, town: p.town || null, career: careerFinal,
       religion: p.religion || null, relationship_goals: p.relationship_goals || null,
       smoking: p.smoking || null, drinking: p.drinking || null, has_children: p.has_children || null,
       education: p.education || null, financial_status: p.financial_status || null,
@@ -99,7 +101,7 @@ const Onboarding = () => {
       preferred_genders: p.preferred_genders, preferred_ethnicities: p.preferred_ethnicities,
       preferred_religions: p.preferred_religions, preferred_countries: p.preferred_countries,
       preferred_relationship_goals: p.preferred_relationship_goals,
-    }).eq("id", user.id);
+    } as any).eq("id", user.id);
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Profile saved!");
