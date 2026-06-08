@@ -14,8 +14,9 @@ async function token(base: string, key: string, secret: string) {
   const text = await res.text(); if (!res.ok) throw new Error(`M-Pesa auth failed: ${text}`);
   return JSON.parse(text).access_token as string;
 }
-async function grantPremium(sb: any, userId: string, paymentId: string) {
-  await sb.rpc("grant_premium_for_payment", { _user_id: userId, _payment_id: paymentId });
+async function grantForPayment(sb: any, payment: any) {
+  if (payment.order_id) await sb.rpc("mark_order_paid_for_payment", { _order_id: payment.order_id, _payment_id: payment.id });
+  else await sb.rpc("grant_premium_for_payment", { _user_id: payment.user_id, _payment_id: payment.id });
 }
 
 Deno.serve(async (req) => {
