@@ -117,7 +117,7 @@ export default function Shop() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="h-6 w-6 text-primary" /> Shop</h1>
-          <p className="text-sm text-muted-foreground">Cash on delivery or M-Pesa. Delivery across Kenya.</p>
+          <p className="text-sm text-muted-foreground">Instant M-Pesa payment · Delivery across Kenya.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => nav("/orders")}>My orders</Button>
