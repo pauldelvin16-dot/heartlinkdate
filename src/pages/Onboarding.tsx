@@ -13,6 +13,7 @@ import {
   CONDITIONS, INTERESTS, RELIGIONS, RELATIONSHIP_GOALS, SMOKING_OPTS, DRINKING_OPTS,
   CHILDREN_OPTS, EDUCATION_OPTS, FINANCIAL_OPTS, LANGUAGES,
 } from "@/lib/constants";
+import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf, CAREERS } from "@/lib/kenya";
 import { Camera, Loader2, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
