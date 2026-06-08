@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle2, Loader2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf } from "@/lib/kenya";
