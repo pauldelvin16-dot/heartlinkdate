@@ -159,6 +159,60 @@ const Onboarding = () => {
           </div>
         </Section>
 
+        {p.country === "Kenya" && (
+          <Section title="🇰🇪 Where in Kenya?">
+            <p className="-mt-2 mb-3 text-xs text-muted-foreground">Helps us match you with people near you and deliver shop orders.</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="County">
+                <Select value={p.county || ""} onValueChange={v => setP({ ...p, county: v, sub_county: "", town: "" })}>
+                  <SelectTrigger><SelectValue placeholder="Select county" /></SelectTrigger>
+                  <SelectContent className="max-h-72">{KENYA_COUNTY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              {p.county && (
+                <Field label="Sub-county">
+                  <Select value={p.sub_county || ""} onValueChange={v => setP({ ...p, sub_county: v, town: "" })}>
+                    <SelectTrigger><SelectValue placeholder="Select sub-county" /></SelectTrigger>
+                    <SelectContent className="max-h-72">{subCountiesOf(p.county).map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </Field>
+              )}
+              {p.sub_county && (
+                <Field label="Town / Estate">
+                  {townsOf(p.county, p.sub_county).length > 0 ? (
+                    <Select value={p.town || ""} onValueChange={v => setP({ ...p, town: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select town" /></SelectTrigger>
+                      <SelectContent className="max-h-72">{townsOf(p.county, p.sub_county).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={p.town || ""} placeholder="Type your town" onChange={e => setP({ ...p, town: e.target.value })} />
+                  )}
+                </Field>
+              )}
+            </div>
+          </Section>
+        )}
+
+        <Section title="Career">
+          <p className="-mt-2 mb-3 text-xs text-muted-foreground">Pick what fits — or write your matatu sacco / employer if “Other”.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Career / Employer">
+              <Picker value={p.career} onChange={v => setP({ ...p, career: v })} options={CAREERS} />
+            </Field>
+            {p.career === "Other" && (
+              <Field label="Tell us more">
+                <Input value={p.career_custom || ""} placeholder="e.g. Embassava sacco, Tahmeed driver" onChange={e => setP({ ...p, career_custom: e.target.value })} />
+              </Field>
+            )}
+            {p.career === "Matatu Operator" && (
+              <Field label="Sacco / Route">
+                <Input value={p.career_custom || ""} placeholder="e.g. Super Metro, Route 105" onChange={e => setP({ ...p, career_custom: e.target.value })} />
+              </Field>
+            )}
+          </div>
+        </Section>
+
+
         <Section title="Lifestyle">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Looking for"><Picker value={p.relationship_goals} onChange={v => setP({ ...p, relationship_goals: v })} options={RELATIONSHIP_GOALS} /></Field>
