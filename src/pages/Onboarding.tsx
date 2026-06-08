@@ -25,6 +25,7 @@ const Onboarding = () => {
   const [p, setP] = useState<any>({
     display_name: "", bio: "", age: "25", gender: "", orientation: "", interested_in: "",
     country: "", city: "", ethnicity: "", age_group: "adult",
+    county: "", sub_county: "", town: "", career: "", career_custom: "",
     religion: "", relationship_goals: "", smoking: "", drinking: "", has_children: "",
     education: "", financial_status: "", height_cm: "",
     languages: [], conditions: [], interests: [], photos: [],
