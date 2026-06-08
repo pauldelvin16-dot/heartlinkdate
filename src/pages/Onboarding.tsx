@@ -86,7 +86,9 @@ const Onboarding = () => {
       toast.error("Age must be between 18 and 120."); return;
     }
     setBusy(true);
-    const careerFinal = p.career === "Other" ? (p.career_custom || null) : (p.career || null);
+    const careerFinal = (p.career === "Other" || p.career === "Matatu Operator")
+      ? [p.career, p.career_custom].filter(Boolean).join(" — ")
+      : (p.career || null);
     const { error } = await supabase.from("profiles").update({
       display_name: p.display_name, bio: p.bio, age: ageNum,
       gender: p.gender, orientation: p.orientation, interested_in: p.interested_in,
