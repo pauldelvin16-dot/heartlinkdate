@@ -106,3 +106,12 @@
   .shadow-card { box-shadow: var(--shadow-card); }
   .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
 }
+
+/* Prevent iOS Safari from auto-zooming on focused inputs */
+@media (max-width: 768px) {
+  input, select, textarea { font-size: 16px !important; }
+}
+
+/* Reduce touch latency for swipes & taps */
+* { -webkit-tap-highlight-color: transparent; }
+button, [role="button"], a { touch-action: manipulation; }
