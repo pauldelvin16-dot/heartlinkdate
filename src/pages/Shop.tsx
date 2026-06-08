@@ -54,13 +54,15 @@ export default function Shop() {
     setCart(c => c.map(i => i.id === id ? { ...i, qty: q } : i));
   }
 
+  const [stkStatus, setStkStatus] = useState<"idle" | "sending" | "waiting" | "paid" | "failed">("idle");
+
   async function placeOrder() {
     if (!user) return nav("/auth");
     if (!cart.length) return toast.error("Cart is empty");
     if (!form.full_name || !form.phone || !form.county) return toast.error("Name, phone and county required");
     setBusy(true);
     const { data: order, error } = await (supabase as any).from("orders").insert({
-      user_id: user.id, status: "pending", total_kes: total,
+      user_id: user.id, status: "pending", payment_status: "pending", total_kes: total,
       full_name: form.full_name, phone: form.phone,
       county: form.county, sub_county: form.sub_county || null, town: form.town || null,
       address: form.address || null, notes: form.notes || null,
@@ -68,11 +70,46 @@ export default function Shop() {
     if (error) { setBusy(false); return toast.error(error.message); }
     const items = cart.map(c => ({ order_id: order.id, product_id: c.id, name: c.name, unit_price_kes: c.price_kes, quantity: c.qty, image_url: c.image_url }));
     const { error: e2 } = await (supabase as any).from("order_items").insert(items);
-    setBusy(false);
-    if (e2) return toast.error(e2.message);
-    setCart([]); setCheckout(false);
-    toast.success("Order placed! Track it under My Orders.");
-    nav("/orders");
+    if (e2) { setBusy(false); return toast.error(e2.message); }
+
+    // Initiate instant M-Pesa STK push
+    setStkStatus("sending");
+    const { data: stk, error: stkErr } = await supabase.functions.invoke("initiate-mpesa", {
+      body: { phone: form.phone, order_id: order.id },
+    });
+    if (stkErr || (stk as any)?.error) {
+      setBusy(false); setStkStatus("failed");
+      return toast.error((stk as any)?.error || stkErr?.message || "Failed to start M-Pesa");
+    }
+    const paymentId = (stk as any)?.payment?.id;
+    toast.success("STK push sent. Enter your M-Pesa PIN on your phone.");
+    setStkStatus("waiting");
+
+    // Poll up to 60s
+    let attempts = 0;
+    const tick = async () => {
+      attempts++;
+      const { data: pay } = await (supabase as any).from("mpesa_payments").select("status").eq("id", paymentId).maybeSingle();
+      if (pay?.status === "paid") {
+        setStkStatus("paid"); setBusy(false); setCart([]); setCheckout(false);
+        toast.success("Payment received! Order confirmed.");
+        return nav("/orders");
+      }
+      if (pay?.status === "failed" || pay?.status === "cancelled") {
+        // Fallback to poll edge function once
+        await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id: paymentId } }).catch(() => {});
+        setStkStatus("failed"); setBusy(false);
+        return toast.error("M-Pesa payment failed. You can retry from My Orders.");
+      }
+      if (attempts >= 30) {
+        await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id: paymentId } }).catch(() => {});
+        setStkStatus("idle"); setBusy(false); setCheckout(false);
+        toast("Still waiting. We'll confirm shortly — check My Orders.");
+        return nav("/orders");
+      }
+      setTimeout(tick, 2000);
+    };
+    setTimeout(tick, 2500);
   }
 
   return (
