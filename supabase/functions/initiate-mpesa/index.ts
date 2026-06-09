@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
       amount,
       package_id: pkg?.id ?? null,
       order_id: order?.id ?? null,
+      escrow_id: escrow?.id ?? null,
       duration_days,
       status: "processing",
       checkout_request_id: raw.CheckoutRequestID,
