@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { COUNTRIES, FINANCIAL_OPTS, FREE_DAILY_SWIPES } from "@/lib/constants";
+import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf } from "@/lib/kenya";
 import { AdBanner } from "@/components/AdBanner";
 import { ensureNotificationPermission } from "@/hooks/useUnreadCounts";
 
