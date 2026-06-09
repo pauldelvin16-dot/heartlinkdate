@@ -185,6 +185,28 @@ const Discover = () => {
                     className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
                   />
                 </div>
+                {(filterCountry === "Kenya" || me?.country === "Kenya") && (
+                  <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="text-xs font-semibold">🇰🇪 Kenya — pick a precise area</p>
+                    <Select value={filterCounty} onValueChange={(v) => { setFilterCounty(v === "__all" ? "" : v); setFilterSubCounty(""); setFilterTown(""); }} disabled={!isPremium}>
+                      <SelectTrigger><SelectValue placeholder="Any county" /></SelectTrigger>
+                      <SelectContent className="max-h-72"><SelectItem value="__all">Any county</SelectItem>{KENYA_COUNTY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {filterCounty && (
+                      <Select value={filterSubCounty} onValueChange={(v) => { setFilterSubCounty(v === "__all" ? "" : v); setFilterTown(""); }} disabled={!isPremium}>
+                        <SelectTrigger><SelectValue placeholder="Any sub-county" /></SelectTrigger>
+                        <SelectContent className="max-h-72"><SelectItem value="__all">Any sub-county</SelectItem>{subCountiesOf(filterCounty).map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    )}
+                    {filterSubCounty && townsOf(filterCounty, filterSubCounty).length > 0 && (
+                      <Select value={filterTown} onValueChange={(v) => setFilterTown(v === "__all" ? "" : v)} disabled={!isPremium}>
+                        <SelectTrigger><SelectValue placeholder="Any town" /></SelectTrigger>
+                        <SelectContent className="max-h-72"><SelectItem value="__all">Any town</SelectItem>{townsOf(filterCounty, filterSubCounty).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      </Select>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">Tip: we also use live GPS — toggle <strong>Near me</strong> to combine both for accuracy when people travel.</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium">Financial status</label>
                   <Select value={filterFinancial} onValueChange={(v) => setFilterFinancial(v === "__all" ? "" : v)} disabled={!isPremium}>
