@@ -54,6 +54,9 @@ const Discover = () => {
   const [matchModal, setMatchModal] = useState<Profile | null>(null);
   const [filterCountry, setFilterCountry] = useState("");
   const [filterRegion, setFilterRegion] = useState("");
+  const [filterCounty, setFilterCounty] = useState("");
+  const [filterSubCounty, setFilterSubCounty] = useState("");
+  const [filterTown, setFilterTown] = useState("");
   const [filterFinancial, setFilterFinancial] = useState("");
   const [nearbyOnly, setNearbyOnly] = useState(false);
   const [radiusValue, setRadiusValue] = useState(100);
