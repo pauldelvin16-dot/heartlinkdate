@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { COUNTRIES, FINANCIAL_OPTS, FREE_DAILY_SWIPES } from "@/lib/constants";
+import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf } from "@/lib/kenya";
 import { AdBanner } from "@/components/AdBanner";
 import { ensureNotificationPermission } from "@/hooks/useUnreadCounts";
 
@@ -53,6 +54,9 @@ const Discover = () => {
   const [matchModal, setMatchModal] = useState<Profile | null>(null);
   const [filterCountry, setFilterCountry] = useState("");
   const [filterRegion, setFilterRegion] = useState("");
+  const [filterCounty, setFilterCounty] = useState("");
+  const [filterSubCounty, setFilterSubCounty] = useState("");
+  const [filterTown, setFilterTown] = useState("");
   const [filterFinancial, setFilterFinancial] = useState("");
   const [nearbyOnly, setNearbyOnly] = useState(false);
   const [radiusValue, setRadiusValue] = useState(100);
@@ -75,6 +79,9 @@ const Discover = () => {
     if (myProfile?.is_premium) {
       if (filterCountry) list = list.filter(p => p.country === filterCountry);
       if (filterRegion.trim()) list = list.filter(p => (p as any).region && String((p as any).region).toLowerCase().includes(filterRegion.trim().toLowerCase()));
+      if (filterCounty) list = list.filter(p => (p as any).county === filterCounty);
+      if (filterSubCounty) list = list.filter(p => (p as any).sub_county === filterSubCounty);
+      if (filterTown) list = list.filter(p => (p as any).town === filterTown);
       if (filterFinancial) list = list.filter(p => p.financial_status === filterFinancial);
     }
     if (nearbyOnly && myProfile?.is_premium) {
@@ -84,7 +91,7 @@ const Discover = () => {
     setProfiles(list);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterRegion, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterRegion, filterCounty, filterSubCounty, filterTown, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
 
   // Preload next card's image for instant render on slow networks
   useEffect(() => {
@@ -178,6 +185,28 @@ const Discover = () => {
                     className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
                   />
                 </div>
+                {(filterCountry === "Kenya" || me?.country === "Kenya") && (
+                  <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="text-xs font-semibold">🇰🇪 Kenya — pick a precise area</p>
+                    <Select value={filterCounty} onValueChange={(v) => { setFilterCounty(v === "__all" ? "" : v); setFilterSubCounty(""); setFilterTown(""); }} disabled={!isPremium}>
+                      <SelectTrigger><SelectValue placeholder="Any county" /></SelectTrigger>
+                      <SelectContent className="max-h-72"><SelectItem value="__all">Any county</SelectItem>{KENYA_COUNTY_NAMES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {filterCounty && (
+                      <Select value={filterSubCounty} onValueChange={(v) => { setFilterSubCounty(v === "__all" ? "" : v); setFilterTown(""); }} disabled={!isPremium}>
+                        <SelectTrigger><SelectValue placeholder="Any sub-county" /></SelectTrigger>
+                        <SelectContent className="max-h-72"><SelectItem value="__all">Any sub-county</SelectItem>{subCountiesOf(filterCounty).map(s => <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    )}
+                    {filterSubCounty && townsOf(filterCounty, filterSubCounty).length > 0 && (
+                      <Select value={filterTown} onValueChange={(v) => setFilterTown(v === "__all" ? "" : v)} disabled={!isPremium}>
+                        <SelectTrigger><SelectValue placeholder="Any town" /></SelectTrigger>
+                        <SelectContent className="max-h-72"><SelectItem value="__all">Any town</SelectItem>{townsOf(filterCounty, filterSubCounty).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      </Select>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">Tip: we also use live GPS — toggle <strong>Near me</strong> to combine both for accuracy when people travel.</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium">Financial status</label>
                   <Select value={filterFinancial} onValueChange={(v) => setFilterFinancial(v === "__all" ? "" : v)} disabled={!isPremium}>

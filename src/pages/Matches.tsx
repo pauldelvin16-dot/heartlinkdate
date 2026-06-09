@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Heart, Sparkles, MessageCircle, Lock, Crown, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Heart, Sparkles, MessageCircle, Lock, Crown, Clock, CheckCircle2, XCircle, Shield, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 type ReqStatus = "pending" | "approved" | "declined" | undefined;
@@ -15,6 +19,28 @@ const Matches = () => {
   const [premium, setPremium] = useState(false);
   const [allowed, setAllowed] = useState<Record<string, boolean>>({});
   const [requests, setRequests] = useState<Record<string, ReqStatus>>({});
+  const [payOpen, setPayOpen] = useState<{ matchId: string; otherId: string; name: string } | null>(null);
+  const [payForm, setPayForm] = useState({ amount: "500", purpose: "", phone: "" });
+  const [paying, setPaying] = useState(false);
+
+  async function startMeetupPay() {
+    if (!payOpen || !user) return;
+    const amt = parseInt(payForm.amount, 10);
+    if (!amt || amt < 1) return toast.error("Enter a valid amount");
+    if (!payForm.phone) return toast.error("Enter your M-Pesa phone");
+    setPaying(true);
+    const { data: escrowId, error: rpcErr } = await (supabase as any).rpc("create_meetup_escrow", {
+      _match_id: payOpen.matchId, _amount_kes: amt, _purpose: payForm.purpose || null,
+    });
+    if (rpcErr) { setPaying(false); return toast.error(rpcErr.message); }
+    const { data: stk, error: stkErr } = await supabase.functions.invoke("initiate-mpesa", {
+      body: { phone: payForm.phone, escrow_id: escrowId },
+    });
+    setPaying(false);
+    if (stkErr || (stk as any)?.error) return toast.error((stk as any)?.error || stkErr?.message || "Failed to start M-Pesa");
+    toast.success("STK push sent. Enter your M-Pesa PIN to fund escrow.");
+    setPayOpen(null);
+  }
 
   async function load() {
     if (!user) return;
@@ -113,12 +139,46 @@ const Matches = () => {
                       <Link to="/connect"><Button size="sm" variant="ghost" className="text-primary"><Crown className="mr-1 h-4 w-4" /> Upgrade</Button></Link>
                     </>
                   )}
+                  <Button size="sm" variant="outline" className="text-primary border-primary/40"
+                    onClick={() => { setPayForm({ amount: "500", purpose: "", phone: "" }); setPayOpen({ matchId: m.id, otherId: m.otherId, name: m.profile.display_name }); }}>
+                    <Shield className="mr-1 h-4 w-4" /> Meetup Pay
+                  </Button>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      <div className="mt-4 flex justify-center">
+        <Link to="/meetups"><Button variant="outline" size="sm"><Shield className="mr-1 h-4 w-4 text-primary" /> Manage Meetup Pay escrows</Button></Link>
+      </div>
+
+      <Dialog open={!!payOpen} onOpenChange={(o) => !o && setPayOpen(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Meetup Pay · Safe escrow</DialogTitle>
+            <DialogDescription>
+              Send funds to <strong>{payOpen?.name}</strong> safely. Money is locked in escrow until you confirm the meetup went well. After you release, they can mark it fulfilled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Amount (KES)</Label><Input type="number" inputMode="numeric" value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: e.target.value })} /></div>
+            <div><Label>Reason (e.g. lunch date, transport)</Label><Textarea rows={2} value={payForm.purpose} onChange={e => setPayForm({ ...payForm, purpose: e.target.value })} /></div>
+            <div><Label>Your M-Pesa phone</Label><Input value={payForm.phone} onChange={e => setPayForm({ ...payForm, phone: e.target.value })} placeholder="07XXXXXXXX" /></div>
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <Shield className="inline h-3.5 w-3.5 text-primary" /> An STK push goes to your phone. Funds stay in escrow under our protection until you mark satisfied.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(null)}>Cancel</Button>
+            <Button disabled={paying} onClick={startMeetupPay} className="gradient-primary text-primary-foreground">
+              {paying ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Smartphone className="mr-1 h-4 w-4" />}
+              Pay KES {parseInt(payForm.amount || "0").toLocaleString()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
