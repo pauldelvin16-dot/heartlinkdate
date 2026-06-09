@@ -17,6 +17,7 @@ import Chat from "./pages/Chat";
 import Install from "./pages/Install";
 import Shop from "./pages/Shop";
 import Orders from "./pages/Orders";
+import Meetups from "./pages/Meetups";
 import NotFound from "./pages/NotFound.tsx";
 import { TopNav } from "./components/TopNav";
 import { BottomNav } from "./components/BottomNav";
