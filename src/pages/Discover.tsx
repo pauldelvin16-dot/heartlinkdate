@@ -79,6 +79,9 @@ const Discover = () => {
     if (myProfile?.is_premium) {
       if (filterCountry) list = list.filter(p => p.country === filterCountry);
       if (filterRegion.trim()) list = list.filter(p => (p as any).region && String((p as any).region).toLowerCase().includes(filterRegion.trim().toLowerCase()));
+      if (filterCounty) list = list.filter(p => (p as any).county === filterCounty);
+      if (filterSubCounty) list = list.filter(p => (p as any).sub_county === filterSubCounty);
+      if (filterTown) list = list.filter(p => (p as any).town === filterTown);
       if (filterFinancial) list = list.filter(p => p.financial_status === filterFinancial);
     }
     if (nearbyOnly && myProfile?.is_premium) {
@@ -88,7 +91,7 @@ const Discover = () => {
     setProfiles(list);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterRegion, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterRegion, filterCounty, filterSubCounty, filterTown, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
 
   // Preload next card's image for instant render on slow networks
   useEffect(() => {
