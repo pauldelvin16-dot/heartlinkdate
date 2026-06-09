@@ -19,6 +19,28 @@ const Matches = () => {
   const [premium, setPremium] = useState(false);
   const [allowed, setAllowed] = useState<Record<string, boolean>>({});
   const [requests, setRequests] = useState<Record<string, ReqStatus>>({});
+  const [payOpen, setPayOpen] = useState<{ matchId: string; otherId: string; name: string } | null>(null);
+  const [payForm, setPayForm] = useState({ amount: "500", purpose: "", phone: "" });
+  const [paying, setPaying] = useState(false);
+
+  async function startMeetupPay() {
+    if (!payOpen || !user) return;
+    const amt = parseInt(payForm.amount, 10);
+    if (!amt || amt < 1) return toast.error("Enter a valid amount");
+    if (!payForm.phone) return toast.error("Enter your M-Pesa phone");
+    setPaying(true);
+    const { data: escrowId, error: rpcErr } = await (supabase as any).rpc("create_meetup_escrow", {
+      _match_id: payOpen.matchId, _amount_kes: amt, _purpose: payForm.purpose || null,
+    });
+    if (rpcErr) { setPaying(false); return toast.error(rpcErr.message); }
+    const { data: stk, error: stkErr } = await supabase.functions.invoke("initiate-mpesa", {
+      body: { phone: payForm.phone, escrow_id: escrowId },
+    });
+    setPaying(false);
+    if (stkErr || (stk as any)?.error) return toast.error((stk as any)?.error || stkErr?.message || "Failed to start M-Pesa");
+    toast.success("STK push sent. Enter your M-Pesa PIN to fund escrow.");
+    setPayOpen(null);
+  }
 
   async function load() {
     if (!user) return;
