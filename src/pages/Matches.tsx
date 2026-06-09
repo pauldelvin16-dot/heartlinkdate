@@ -149,6 +149,36 @@ const Matches = () => {
           })}
         </div>
       )}
+
+      <div className="mt-4 flex justify-center">
+        <Link to="/meetups"><Button variant="outline" size="sm"><Shield className="mr-1 h-4 w-4 text-primary" /> Manage Meetup Pay escrows</Button></Link>
+      </div>
+
+      <Dialog open={!!payOpen} onOpenChange={(o) => !o && setPayOpen(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Meetup Pay · Safe escrow</DialogTitle>
+            <DialogDescription>
+              Send funds to <strong>{payOpen?.name}</strong> safely. Money is locked in escrow until you confirm the meetup went well. After you release, they can mark it fulfilled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Amount (KES)</Label><Input type="number" inputMode="numeric" value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: e.target.value })} /></div>
+            <div><Label>Reason (e.g. lunch date, transport)</Label><Textarea rows={2} value={payForm.purpose} onChange={e => setPayForm({ ...payForm, purpose: e.target.value })} /></div>
+            <div><Label>Your M-Pesa phone</Label><Input value={payForm.phone} onChange={e => setPayForm({ ...payForm, phone: e.target.value })} placeholder="07XXXXXXXX" /></div>
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <Shield className="inline h-3.5 w-3.5 text-primary" /> An STK push goes to your phone. Funds stay in escrow under our protection until you mark satisfied.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(null)}>Cancel</Button>
+            <Button disabled={paying} onClick={startMeetupPay} className="gradient-primary text-primary-foreground">
+              {paying ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Smartphone className="mr-1 h-4 w-4" />}
+              Pay KES {parseInt(payForm.amount || "0").toLocaleString()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
