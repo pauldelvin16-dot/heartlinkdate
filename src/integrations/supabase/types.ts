@@ -315,6 +315,79 @@ export type Database = {
           },
         ]
       }
+      meetup_escrows: {
+        Row: {
+          amount_kes: number
+          cancelled_at: string | null
+          created_at: string
+          fulfilled_at: string | null
+          funded_at: string | null
+          id: string
+          match_id: string
+          mpesa_payment_id: string | null
+          payee_id: string
+          payer_id: string
+          purpose: string | null
+          released_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_kes: number
+          cancelled_at?: string | null
+          created_at?: string
+          fulfilled_at?: string | null
+          funded_at?: string | null
+          id?: string
+          match_id: string
+          mpesa_payment_id?: string | null
+          payee_id: string
+          payer_id: string
+          purpose?: string | null
+          released_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_kes?: number
+          cancelled_at?: string | null
+          created_at?: string
+          fulfilled_at?: string | null
+          funded_at?: string | null
+          id?: string
+          match_id?: string
+          mpesa_payment_id?: string | null
+          payee_id?: string
+          payer_id?: string
+          purpose?: string | null
+          released_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetup_escrows_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetup_escrows_payee_id_fkey"
+            columns: ["payee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetup_escrows_payer_id_fkey"
+            columns: ["payer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           body: string
@@ -404,6 +477,7 @@ export type Database = {
           checkout_request_id: string | null
           created_at: string
           duration_days: number
+          escrow_id: string | null
           id: string
           merchant_request_id: string | null
           order_id: string | null
@@ -421,6 +495,7 @@ export type Database = {
           checkout_request_id?: string | null
           created_at?: string
           duration_days?: number
+          escrow_id?: string | null
           id?: string
           merchant_request_id?: string | null
           order_id?: string | null
@@ -438,6 +513,7 @@ export type Database = {
           checkout_request_id?: string | null
           created_at?: string
           duration_days?: number
+          escrow_id?: string | null
           id?: string
           merchant_request_id?: string | null
           order_id?: string | null
@@ -451,6 +527,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "mpesa_payments_escrow_id_fkey"
+            columns: ["escrow_id"]
+            isOneToOne: false
+            referencedRelation: "meetup_escrows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mpesa_payments_order_id_fkey"
             columns: ["order_id"]
@@ -1217,8 +1300,13 @@ export type Database = {
         }[]
       }
       can_message: { Args: { _a: string; _b: string }; Returns: boolean }
+      cancel_meetup_escrow: { Args: { _escrow_id: string }; Returns: undefined }
       click_ad: { Args: { _ad_id: string }; Returns: number }
       consume_bonus_swipe: { Args: never; Returns: boolean }
+      create_meetup_escrow: {
+        Args: { _amount_kes: number; _match_id: string; _purpose?: string }
+        Returns: string
+      }
       create_simulated_match: {
         Args: { _target_id: string; _user_id: string }
         Returns: Json
@@ -1250,6 +1338,10 @@ export type Database = {
       }
       log_ad_impression: {
         Args: { _ad_id: string; _country?: string }
+        Returns: undefined
+      }
+      mark_meetup_fulfilled: {
+        Args: { _escrow_id: string }
         Returns: undefined
       }
       mark_order_paid_for_payment: {
@@ -1284,6 +1376,10 @@ export type Database = {
           religion: string
           score: number
         }[]
+      }
+      release_meetup_escrow: {
+        Args: { _escrow_id: string }
+        Returns: undefined
       }
       unread_counts: { Args: { _user_id: string }; Returns: Json }
       upsert_swipe: {
