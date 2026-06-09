@@ -139,6 +139,10 @@ const Matches = () => {
                       <Link to="/connect"><Button size="sm" variant="ghost" className="text-primary"><Crown className="mr-1 h-4 w-4" /> Upgrade</Button></Link>
                     </>
                   )}
+                  <Button size="sm" variant="outline" className="text-primary border-primary/40"
+                    onClick={() => { setPayForm({ amount: "500", purpose: "", phone: "" }); setPayOpen({ matchId: m.id, otherId: m.otherId, name: m.profile.display_name }); }}>
+                    <Shield className="mr-1 h-4 w-4" /> Meetup Pay
+                  </Button>
                 </div>
               </div>
             );
