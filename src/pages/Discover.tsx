@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { COUNTRIES, FINANCIAL_OPTS, FREE_DAILY_SWIPES } from "@/lib/constants";
-import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf } from "@/lib/kenya";
+import { COUNTRIES, FINANCIAL_OPTS, GENDERS, FREE_DAILY_SWIPES } from "@/lib/constants";
+import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf, searchKenya } from "@/lib/kenya";
 import { AdBanner } from "@/components/AdBanner";
 import { ensureNotificationPermission } from "@/hooks/useUnreadCounts";
 
@@ -58,6 +58,10 @@ const Discover = () => {
   const [filterSubCounty, setFilterSubCounty] = useState("");
   const [filterTown, setFilterTown] = useState("");
   const [filterFinancial, setFilterFinancial] = useState("");
+  const [filterGender, setFilterGender] = useState("");
+  const [filterAgeMin, setFilterAgeMin] = useState(18);
+  const [filterAgeMax, setFilterAgeMax] = useState(99);
+  const [filterArea, setFilterArea] = useState("");
   const [nearbyOnly, setNearbyOnly] = useState(false);
   const [radiusValue, setRadiusValue] = useState(100);
   const [radiusUnit, setRadiusUnit] = useState<"km" | "mi">("km");
@@ -83,6 +87,13 @@ const Discover = () => {
       if (filterSubCounty) list = list.filter(p => (p as any).sub_county === filterSubCounty);
       if (filterTown) list = list.filter(p => (p as any).town === filterTown);
       if (filterFinancial) list = list.filter(p => p.financial_status === filterFinancial);
+      if (filterGender) list = list.filter(p => p.gender === filterGender);
+      if (filterAgeMin > 18 || filterAgeMax < 99) list = list.filter(p => p.age != null && p.age >= filterAgeMin && p.age <= filterAgeMax);
+      if (filterArea.trim()) {
+        const q = filterArea.trim().toLowerCase();
+        list = list.filter(p => [(p as any).county, (p as any).sub_county, (p as any).town, p.city, (p as any).region]
+          .some(v => v && String(v).toLowerCase().includes(q)));
+      }
     }
     if (nearbyOnly && myProfile?.is_premium) {
       const radiusKm = radiusUnit === "mi" ? radiusValue * 1.60934 : radiusValue;
@@ -91,7 +102,7 @@ const Discover = () => {
     setProfiles(list);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterRegion, filterCounty, filterSubCounty, filterTown, filterFinancial, nearbyOnly, radiusValue, radiusUnit]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, filterCountry, filterRegion, filterCounty, filterSubCounty, filterTown, filterFinancial, filterGender, filterAgeMin, filterAgeMax, filterArea, nearbyOnly, radiusValue, radiusUnit]);
 
   // Preload next card's image for instant render on slow networks
   useEffect(() => {
@@ -216,6 +227,47 @@ const Discover = () => {
                       {FINANCIAL_OPTS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Gender</label>
+                  <Select value={filterGender} onValueChange={(v) => setFilterGender(v === "__all" ? "" : v)} disabled={!isPremium}>
+                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all">Any</SelectItem>
+                      {GENDERS.map(g => <SelectItem key={g} value={g} className="capitalize">{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Age range</label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input type="number" min={18} max={120} disabled={!isPremium} value={filterAgeMin}
+                      onChange={e => setFilterAgeMin(Math.max(18, Math.min(120, parseInt(e.target.value) || 18)))}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50" />
+                    <span className="text-xs text-muted-foreground">to</span>
+                    <input type="number" min={18} max={120} disabled={!isPremium} value={filterAgeMax}
+                      onChange={e => setFilterAgeMax(Math.max(18, Math.min(120, parseInt(e.target.value) || 99)))}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Search area (town, sub-county, county)</label>
+                  <input
+                    list="hl-area-suggestions"
+                    disabled={!isPremium}
+                    value={filterArea}
+                    onChange={e => setFilterArea(e.target.value)}
+                    placeholder="e.g. Westlands, Eldoret, Kilimani…"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
+                  />
+                  <datalist id="hl-area-suggestions">
+                    {searchKenya(filterArea, 25).map(a => (
+                      <option key={`${a.county}-${a.subCounty}-${a.town}`} value={a.town || a.subCounty || a.county}>
+                        {[a.town, a.subCounty, a.county].filter(Boolean).join(", ")}
+                      </option>
+                    ))}
+                  </datalist>
+                  <p className="mt-1 text-[10px] text-muted-foreground">Matches town, sub-county, county, city &amp; region — start typing to see Kenyan suggestions.</p>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">

@@ -22,6 +22,15 @@ function makeSignupSchema(allowed: string[]) {
 }
 const loginSchema = z.object({ email: z.string().trim().email(), password: z.string().min(1) });
 
+// East Africa first — Kenya & neighbours pinned to the top of the dial list.
+const EA_DIALS = ["+254", "+255", "+256", "+250", "+257", "+211", "+251", "+252", "+253"];
+function sortDials(list: { code: string; name: string; dial: string }[]) {
+  return [...list].sort((a, b) => {
+    const ra = EA_DIALS.indexOf(a.dial), rb = EA_DIALS.indexOf(b.dial);
+    return (ra === -1 ? 999 : ra) - (rb === -1 ? 999 : rb);
+  });
+}
+
 const Auth = () => {
   const [params] = useSearchParams();
   const nav = useNavigate();
@@ -30,7 +39,7 @@ const Auth = () => {
   const [busy, setBusy] = useState(false);
   const [otpStage, setOtpStage] = useState<"send" | "verify">("send");
   const [otpCode, setOtpCode] = useState("");
-  const [form, setForm] = useState({ email: "", password: "", displayName: "", dial: "+44", phone: "" });
+  const [form, setForm] = useState({ email: "", password: "", displayName: "", dial: "+254", phone: "" });
   const [awaitingVerification, setAwaitingVerification] = useState<string | null>(() => localStorage.getItem("hl_pending_verify"));
   const [polling, setPolling] = useState(false);
 
@@ -184,7 +193,7 @@ const Auth = () => {
                   <Select value={form.dial} onValueChange={v => setForm({ ...form, dial: v })}>
                     <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-72">
-                      {COUNTRIES.filter(c => !s?.allowed_country_codes?.length || s.allowed_country_codes.includes(c.dial)).map(c => <SelectItem key={c.code+c.dial} value={c.dial}>{c.dial} {c.name}</SelectItem>)}
+                      {sortDials(COUNTRIES.filter(c => !s?.allowed_country_codes?.length || s.allowed_country_codes.includes(c.dial))).map(c => <SelectItem key={c.code+c.dial} value={c.dial}>{c.dial} {c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Input placeholder="7700900123" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })} required />
