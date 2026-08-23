@@ -22,6 +22,7 @@ const Onboarding = () => {
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showOptional, setShowOptional] = useState(false);
   const [p, setP] = useState<any>({
     display_name: "", bio: "", age: "25", gender: "", orientation: "", interested_in: "",
     country: "", city: "", ethnicity: "", age_group: "adult",
@@ -115,7 +116,7 @@ const Onboarding = () => {
       <div className="mx-auto max-w-2xl space-y-6 pb-24">
         <div>
           <h1 className="text-3xl font-bold">Set up your profile</h1>
-          <p className="text-muted-foreground">A great profile = better matches.</p>
+          <p className="text-muted-foreground">Only the essentials are required — everything else you can add later.</p>
         </div>
 
         <Section title="Photos (1–6)">
@@ -195,6 +196,16 @@ const Onboarding = () => {
           </Section>
         )}
 
+        <Section title="About you">
+          <Textarea rows={4} placeholder="Tell people about yourself…" value={p.bio} onChange={e => setP({ ...p, bio: e.target.value })} />
+        </Section>
+
+        <button type="button" onClick={() => setShowOptional(v => !v)}
+          className="w-full rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-4 text-sm font-medium text-primary transition hover:bg-primary/10">
+          {showOptional ? "▲ Hide optional details" : "＋ Optional: career, lifestyle, interests & match preferences — add now or later"}
+        </button>
+
+        {showOptional && (<>
         <Section title="Career">
           <p className="-mt-2 mb-3 text-xs text-muted-foreground">Pick what fits — or write your matatu sacco / employer if “Other”.</p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -230,10 +241,6 @@ const Onboarding = () => {
           <ChipGroup options={LANGUAGES} selected={p.languages} onToggle={v => toggle("languages", v)} />
         </Section>
 
-        <Section title="About you">
-          <Textarea rows={4} placeholder="Tell people about yourself…" value={p.bio} onChange={e => setP({ ...p, bio: e.target.value })} />
-        </Section>
-
         <Section title="Interests">
           <ChipGroup options={INTERESTS} selected={p.interests} onToggle={v => toggle("interests", v)} />
         </Section>
@@ -256,6 +263,7 @@ const Onboarding = () => {
             <div><Label className="mb-1 block">Relationship goals</Label><ChipGroup options={RELATIONSHIP_GOALS} selected={p.preferred_relationship_goals} onToggle={v => toggle("preferred_relationship_goals", v)} /></div>
           </div>
         </Section>
+        </>)}
 
         <Button onClick={save} disabled={busy} size="lg" className="w-full gradient-primary text-primary-foreground shadow-glow">
           {busy ? "Saving…" : "Save & start matching"}

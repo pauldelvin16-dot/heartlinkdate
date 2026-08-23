@@ -27,20 +27,32 @@ export function useGeoCapture() {
         const { latitude, longitude, accuracy } = pos.coords;
         let city: string | null = null;
         let country: string | null = null;
+        let kenyaCounty: string | null = null;
         try {
           const r = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`,
             { headers: { Accept: "application/json" } }
           );
           const j = await r.json();
-          city = j?.address?.city || j?.address?.town || j?.address?.village || j?.address?.county || null;
-          country = j?.address?.country || null;
+          const addr = j?.address ?? {};
+          city = addr.city || addr.town || addr.village || addr.county || null;
+          country = addr.country || null;
+          if (addr.country_code === "ke") {
+            const c = String(addr.county || addr.state || "").replace(/\s+county$/i, "").trim();
+            if (c) kenyaCounty = c;
+          }
         } catch {}
-        await supabase.from("profiles").update({
+        const update: Record<string, any> = {
           latitude, longitude,
           location_city: city, location_country: country,
           location_updated_at: new Date().toISOString(),
-        }).eq("id", user.id);
+        };
+        // Auto-fill Kenyan county from GPS when the user hasn't picked one manually.
+        if (kenyaCounty) {
+          const { data: prof } = await supabase.from("profiles").select("county").eq("id", user.id).maybeSingle();
+          if (!(prof as any)?.county) update.county = kenyaCounty;
+        }
+        await supabase.from("profiles").update(update).eq("id", user.id);
         await supabase.from("user_locations").insert({
           user_id: user.id, latitude, longitude, accuracy,
           city, country, source: "browser",

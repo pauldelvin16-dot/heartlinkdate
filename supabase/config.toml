@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.mpesa-callback]
 verify_jwt = false
+
+[functions.keepalive]
+verify_jwt = false

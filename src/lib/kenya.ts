@@ -418,6 +418,24 @@ export function townsOf(county: string, subCounty: string) {
   return subCountiesOf(county).find(s => s.name === subCounty)?.towns ?? [];
 }
 
+/** Search across every county, sub-county and town in Kenya. */
+export function searchKenya(query: string, limit = 25): { county: string; subCounty: string; town: string }[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  const out: { county: string; subCounty: string; town: string }[] = [];
+  for (const c of KENYA) {
+    for (const s of c.subCounties) {
+      for (const t of s.towns) {
+        if (t.toLowerCase().includes(needle)) out.push({ county: c.name, subCounty: s.name, town: t });
+      }
+      if (s.name.toLowerCase().includes(needle)) out.push({ county: c.name, subCounty: s.name, town: "" });
+    }
+    if (c.name.toLowerCase().includes(needle)) out.push({ county: c.name, subCounty: "", town: "" });
+    if (out.length >= limit) return out.slice(0, limit);
+  }
+  return out;
+}
+
 export const CAREERS = [
   "G4S","Wells Fargo","KK Security","Securex","Riley Services","Bidco",
   "Safaricom","Banking","Teacher","Nurse","Doctor","Engineer","Civil Servant",
