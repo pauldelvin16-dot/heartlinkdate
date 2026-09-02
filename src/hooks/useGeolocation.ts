@@ -42,16 +42,20 @@ export function useGeoCapture() {
             if (c) kenyaCounty = c;
           }
         } catch {}
-        const update: Record<string, any> = {
-          latitude, longitude,
-          location_city: city, location_country: country,
+        const update = {
+          latitude,
+          longitude,
+          location_city: city,
+          location_country: country,
           location_updated_at: new Date().toISOString(),
+          county: undefined as string | undefined,
         };
         // Auto-fill Kenyan county from GPS when the user hasn't picked one manually.
         if (kenyaCounty) {
           const { data: prof } = await supabase.from("profiles").select("county").eq("id", user.id).maybeSingle();
-          if (!(prof as any)?.county) update.county = kenyaCounty;
+          if (!prof?.county) update.county = kenyaCounty;
         }
+        if (update.county === undefined) delete (update as { county?: string }).county;
         await supabase.from("profiles").update(update).eq("id", user.id);
         await supabase.from("user_locations").insert({
           user_id: user.id, latitude, longitude, accuracy,
