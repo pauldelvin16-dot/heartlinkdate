@@ -17,18 +17,53 @@ const FLOW: { key: string; label: string; icon: any }[] = [
 export default function Orders() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
+  const [retrying, setRetrying] = useState<string | null>(null);
+  const alive = useRef(true);
 
-  useEffect(() => {
+  async function load() {
     if (!user) return;
-    (async () => {
-      const { data } = await (supabase as any).from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-      const ids = (data ?? []).map((o: any) => o.id);
-      const { data: items } = ids.length
-        ? await (supabase as any).from("order_items").select("*").in("order_id", ids)
-        : { data: [] as any[] };
-      setOrders((data ?? []).map((o: any) => ({ ...o, items: (items ?? []).filter((i: any) => i.order_id === o.id) })));
-    })();
-  }, [user]);
+    const { data } = await (supabase as any).from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const ids = (data ?? []).map((o: any) => o.id);
+    const { data: items } = ids.length
+      ? await (supabase as any).from("order_items").select("*").in("order_id", ids)
+      : { data: [] as any[] };
+    if (!alive.current) return;
+    setOrders((data ?? []).map((o: any) => ({ ...o, items: (items ?? []).filter((i: any) => i.order_id === o.id) })));
+  }
+
+  useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [user]);
+
+  async function retryPayment(order: any) {
+    setRetrying(order.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("initiate-mpesa", { body: { phone: order.phone, order_id: order.id } });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+      const paymentId = (data as any)?.payment?.id;
+      toast.success("M-Pesa prompt sent — enter your PIN");
+      let n = 0;
+      const tick = async () => {
+        if (!alive.current) return;
+        n++;
+        const { data: res } = await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id: paymentId } });
+        const status = (res as any)?.payment?.status;
+        if (status === "paid") {
+          toast.success("Payment received! Order confirmed.");
+          setRetrying(null); return load();
+        }
+        if (status === "failed" || n >= 24) {
+          setRetrying(null);
+          await load();
+          return toast.error(status === "failed" ? "Payment failed — you can try again" : "No confirmation yet — try again");
+        }
+        setTimeout(tick, 5000);
+      };
+      setTimeout(tick, 5000);
+    } catch (e: any) {
+      setRetrying(null);
+      toast.error(e.message || "Could not start M-Pesa payment");
+    }
+  }
+
 
   return (
     <div className="container max-w-3xl px-4 py-6 pb-24">
