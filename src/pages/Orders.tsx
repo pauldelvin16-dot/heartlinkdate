@@ -126,6 +126,16 @@ export default function Orders() {
                 Deliver to: <strong className="text-foreground">{o.full_name}</strong> · {o.phone} · {[o.town, o.sub_county, o.county].filter(Boolean).join(", ")}
                 {o.tracking_code && <div className="mt-1">Tracking: <strong className="text-foreground">{o.tracking_code}</strong></div>}
               </div>
+
+              {o.payment_status !== "paid" && o.status !== "cancelled" && (
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-xs text-muted-foreground">Payment not received yet for this order.</p>
+                  <Button size="sm" disabled={retrying === o.id} onClick={() => retryPayment(o)} className="gradient-primary text-primary-foreground whitespace-nowrap">
+                    {retrying === o.id ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Smartphone className="mr-1.5 h-4 w-4" />}
+                    {retrying === o.id ? "Waiting…" : "Retry M-Pesa"}
+                  </Button>
+                </div>
+              )}
             </div>
           );
         })}
