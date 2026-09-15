@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle2, Loader2, Smartphone } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, Package, CheckCircle2, Loader2, Smartphone, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { KENYA_COUNTY_NAMES, subCountiesOf, townsOf } from "@/lib/kenya";
@@ -241,6 +241,11 @@ export default function Shop() {
               <p className="font-semibold flex items-center gap-1"><Smartphone className="h-4 w-4 text-primary" /> Instant M-Pesa payment</p>
               <p className="text-muted-foreground">{cart.length} item(s) · <strong className="text-foreground">KES {total.toLocaleString()}</strong></p>
               <p className="mt-1 text-xs text-muted-foreground">An STK push will be sent to your phone. Enter your M-Pesa PIN to confirm. Order ships only after payment is received.</p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/50 p-3 text-sm">
+              <p className="font-semibold flex items-center gap-1"><ShieldCheck className="h-4 w-4 text-primary" /> Discreet &amp; Confidential Delivery</p>
+              <p className="mt-1 text-xs text-muted-foreground">Your parcel will always be discreetly packaged and kept confidential. The contents will not be visible or disclosed during shipping, and your privacy will be protected until your order is safely delivered to you.</p>
             </div>
 
             <Button disabled={busy} onClick={placeOrder} className="w-full gradient-primary text-primary-foreground">
