@@ -30,10 +30,14 @@ export default function Shop() {
   const [checkout, setCheckout] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", county: "", sub_county: "", town: "", address: "", notes: "" });
+  const alive = useRef(true);
+  const pollTimer = useRef<any>(null);
 
   useEffect(() => {
     (supabase as any).from("products").select("*").eq("is_active", true).order("sort_order").then(({ data }: any) => setProducts(data ?? []));
   }, []);
+  // Stop any in-flight payment polling when leaving the shop
+  useEffect(() => () => { alive.current = false; if (pollTimer.current) clearTimeout(pollTimer.current); }, []);
   useEffect(() => { saveCart(cart); }, [cart]);
 
   const categories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[], [products]);
