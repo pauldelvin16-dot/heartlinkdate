@@ -73,23 +73,31 @@ const Connect = () => {
     } finally { setBusy(false); }
   }
 
+  function stopPolling() {
+    if (pollTimer.current) { clearInterval(pollTimer.current); pollTimer.current = null; }
+    setPolling(false);
+  }
+
   function startPolling(payment_id: string) {
+    setTimedOut(false);
     setPolling(true);
     let n = 0;
-    if (pollTimer.current) clearInterval(pollTimer.current);
+    stopPolling();
+    setPolling(true);
     pollTimer.current = setInterval(async () => {
       n++;
       const { data } = await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id } });
       const p = (data as any)?.payment;
       if (p) setPayment(p);
       if (p?.status === "paid") {
-        clearInterval(pollTimer.current); setPolling(false);
+        stopPolling();
         toast.success("Payment confirmed — Premium unlocked!");
         setTimeout(() => location.reload(), 1500);
       } else if (p?.status === "failed" || n > 24) {
-        clearInterval(pollTimer.current); setPolling(false);
+        stopPolling();
+        setTimedOut(true);
         if (p?.status === "failed") toast.error(p.result_desc || "Payment failed or cancelled");
-        else if (n > 24) toast.error("Timed out waiting for payment confirmation");
+        else toast.error("No confirmation yet — you can resend the M-Pesa prompt");
       }
     }, 5000);
   }
