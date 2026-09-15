@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,10 +30,14 @@ export default function Shop() {
   const [checkout, setCheckout] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", county: "", sub_county: "", town: "", address: "", notes: "" });
+  const alive = useRef(true);
+  const pollTimer = useRef<any>(null);
 
   useEffect(() => {
     (supabase as any).from("products").select("*").eq("is_active", true).order("sort_order").then(({ data }: any) => setProducts(data ?? []));
   }, []);
+  // Stop any in-flight payment polling when leaving the shop
+  useEffect(() => () => { alive.current = false; if (pollTimer.current) clearTimeout(pollTimer.current); }, []);
   useEffect(() => { saveCart(cart); }, [cart]);
 
   const categories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[], [products]);
@@ -85,11 +89,13 @@ export default function Shop() {
     toast.success("STK push sent. Enter your M-Pesa PIN on your phone.");
     setStkStatus("waiting");
 
-    // Poll up to 60s
+    // Poll up to ~60s, always bounded and cancellable
     let attempts = 0;
     const tick = async () => {
+      if (!alive.current) return;
       attempts++;
       const { data: pay } = await (supabase as any).from("mpesa_payments").select("status").eq("id", paymentId).maybeSingle();
+      if (!alive.current) return;
       if (pay?.status === "paid") {
         setStkStatus("paid"); setBusy(false); setCart([]); setCheckout(false);
         toast.success("Payment received! Order confirmed.");
@@ -98,18 +104,20 @@ export default function Shop() {
       if (pay?.status === "failed" || pay?.status === "cancelled") {
         // Fallback to poll edge function once
         await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id: paymentId } }).catch(() => {});
+        if (!alive.current) return;
         setStkStatus("failed"); setBusy(false);
         return toast.error("M-Pesa payment failed. You can retry from My Orders.");
       }
       if (attempts >= 30) {
         await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id: paymentId } }).catch(() => {});
+        if (!alive.current) return;
         setStkStatus("idle"); setBusy(false); setCheckout(false);
-        toast("Still waiting. We'll confirm shortly — check My Orders.");
+        toast("Still waiting — retry the payment any time from My Orders.");
         return nav("/orders");
       }
-      setTimeout(tick, 2000);
+      pollTimer.current = setTimeout(tick, 2000);
     };
-    setTimeout(tick, 2500);
+    pollTimer.current = setTimeout(tick, 2500);
   }
 
   return (

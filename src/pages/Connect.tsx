@@ -25,6 +25,7 @@ const Connect = () => {
   const [busy, setBusy] = useState(false);
   const [payment, setPayment] = useState<any>(null);
   const [polling, setPolling] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const pollTimer = useRef<any>(null);
 
   useEffect(() => {
@@ -43,11 +44,18 @@ const Connect = () => {
       supabase.from("profiles").select("is_premium,phone").eq("id", user.id).maybeSingle().then(({ data }: any) => { setMe(data); if (data?.phone) setPhone(data.phone); });
       supabase.from("premium_subscriptions").select("*").eq("user_id", user.id).eq("status", "active").order("expires_at", { ascending: false }).limit(1).maybeSingle().then(({ data }) => setSub(data));
       (supabase as any).from("mpesa_payments").select("*").eq("user_id", user.id).in("status", ["pending", "processing"]).order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }: any) => {
-        if (data) { setPayment(data); startPolling(data.id); }
+        if (!data) return;
+        const ageMs = Date.now() - new Date(data.created_at).getTime();
+        // Ignore stale prompts (older than ~3 minutes) so the overlay can never hang
+        if (ageMs > 3 * 60 * 1000) return;
+        setPayment(data);
+        startPolling(data.id);
       });
     }
-    return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
   }, [user]);
+
+  // Always clear the poll timer when leaving the page
+  useEffect(() => () => { if (pollTimer.current) clearInterval(pollTimer.current); }, []);
 
   const wa = (n?: string | null) => n ? `https://wa.me/${n.replace(/[^\d]/g, "")}?text=${encodeURIComponent("Hi! I have a match on " + (settings?.site_name ?? "HeartLink") + " and would like to connect with them.")}` : "#";
 
@@ -66,23 +74,31 @@ const Connect = () => {
     } finally { setBusy(false); }
   }
 
+  function stopPolling() {
+    if (pollTimer.current) { clearInterval(pollTimer.current); pollTimer.current = null; }
+    setPolling(false);
+  }
+
   function startPolling(payment_id: string) {
+    setTimedOut(false);
     setPolling(true);
     let n = 0;
-    if (pollTimer.current) clearInterval(pollTimer.current);
+    stopPolling();
+    setPolling(true);
     pollTimer.current = setInterval(async () => {
       n++;
       const { data } = await supabase.functions.invoke("poll-mpesa-payment", { body: { payment_id } });
       const p = (data as any)?.payment;
       if (p) setPayment(p);
       if (p?.status === "paid") {
-        clearInterval(pollTimer.current); setPolling(false);
+        stopPolling();
         toast.success("Payment confirmed — Premium unlocked!");
         setTimeout(() => location.reload(), 1500);
       } else if (p?.status === "failed" || n > 24) {
-        clearInterval(pollTimer.current); setPolling(false);
+        stopPolling();
+        setTimedOut(true);
         if (p?.status === "failed") toast.error(p.result_desc || "Payment failed or cancelled");
-        else if (n > 24) toast.error("Timed out waiting for payment confirmation");
+        else toast.error("No confirmation yet — you can resend the M-Pesa prompt");
       }
     }, 5000);
   }
@@ -212,9 +228,9 @@ const Connect = () => {
         ))}
       </div>
 
-      {/* Spinner overlay */}
+      {/* Payment overlay */}
       <AnimatePresence>
-        {(polling || payment?.status === "pending" || payment?.status === "processing") && payment?.status !== "paid" && (
+        {(polling || timedOut) && payment?.status !== "paid" && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-md p-6"
@@ -222,17 +238,31 @@ const Connect = () => {
             <motion.div initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-sm rounded-3xl border border-primary/30 bg-card p-7 text-center shadow-glow">
               <div className="relative mx-auto h-20 w-20">
                 <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-                <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                {polling && <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />}
                 <Smartphone className="absolute inset-0 m-auto h-8 w-8 text-primary" />
               </div>
-              <h3 className="mt-4 text-lg font-bold">Confirm on your phone</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Enter your M-Pesa PIN on the prompt sent to <strong>{payment?.phone || phone}</strong>.</p>
-              <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Waiting for confirmation…
+              <h3 className="mt-4 text-lg font-bold">{timedOut ? "No confirmation yet" : "Confirm on your phone"}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {timedOut
+                  ? "We didn't get a confirmation. You can send the M-Pesa prompt again."
+                  : <>Enter your M-Pesa PIN on the prompt sent to <strong>{payment?.phone || phone}</strong>.</>}
+              </p>
+              {polling && (
+                <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Waiting for confirmation…
+                </div>
+              )}
+              <div className="mt-5 flex flex-col gap-2">
+                <Button
+                  disabled={busy}
+                  onClick={() => { stopPolling(); setTimedOut(false); pay(); }}
+                  className="gradient-primary text-primary-foreground"
+                >
+                  {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Smartphone className="mr-1.5 h-4 w-4" />}
+                  Resend STK push
+                </Button>
+                <Button variant="ghost" onClick={() => { stopPolling(); setTimedOut(false); }}>Close</Button>
               </div>
-              <Button variant="ghost" className="mt-4" onClick={() => { if (pollTimer.current) clearInterval(pollTimer.current); setPolling(false); }}>
-                Hide
-              </Button>
             </motion.div>
           </motion.div>
         )}
