@@ -228,9 +228,9 @@ const Connect = () => {
         ))}
       </div>
 
-      {/* Spinner overlay */}
+      {/* Payment overlay */}
       <AnimatePresence>
-        {(polling || payment?.status === "pending" || payment?.status === "processing") && payment?.status !== "paid" && (
+        {(polling || timedOut) && payment?.status !== "paid" && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-md p-6"
@@ -238,17 +238,31 @@ const Connect = () => {
             <motion.div initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-sm rounded-3xl border border-primary/30 bg-card p-7 text-center shadow-glow">
               <div className="relative mx-auto h-20 w-20">
                 <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-                <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                {polling && <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />}
                 <Smartphone className="absolute inset-0 m-auto h-8 w-8 text-primary" />
               </div>
-              <h3 className="mt-4 text-lg font-bold">Confirm on your phone</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Enter your M-Pesa PIN on the prompt sent to <strong>{payment?.phone || phone}</strong>.</p>
-              <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Waiting for confirmation…
+              <h3 className="mt-4 text-lg font-bold">{timedOut ? "No confirmation yet" : "Confirm on your phone"}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {timedOut
+                  ? "We didn't get a confirmation. You can send the M-Pesa prompt again."
+                  : <>Enter your M-Pesa PIN on the prompt sent to <strong>{payment?.phone || phone}</strong>.</>}
+              </p>
+              {polling && (
+                <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Waiting for confirmation…
+                </div>
+              )}
+              <div className="mt-5 flex flex-col gap-2">
+                <Button
+                  disabled={busy}
+                  onClick={() => { stopPolling(); setTimedOut(false); pay(); }}
+                  className="gradient-primary text-primary-foreground"
+                >
+                  {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Smartphone className="mr-1.5 h-4 w-4" />}
+                  Resend STK push
+                </Button>
+                <Button variant="ghost" onClick={() => { stopPolling(); setTimedOut(false); }}>Close</Button>
               </div>
-              <Button variant="ghost" className="mt-4" onClick={() => { if (pollTimer.current) clearInterval(pollTimer.current); setPolling(false); }}>
-                Hide
-              </Button>
             </motion.div>
           </motion.div>
         )}
