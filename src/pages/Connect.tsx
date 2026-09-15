@@ -25,6 +25,7 @@ const Connect = () => {
   const [busy, setBusy] = useState(false);
   const [payment, setPayment] = useState<any>(null);
   const [polling, setPolling] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const pollTimer = useRef<any>(null);
 
   useEffect(() => {
