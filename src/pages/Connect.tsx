@@ -43,11 +43,18 @@ const Connect = () => {
       supabase.from("profiles").select("is_premium,phone").eq("id", user.id).maybeSingle().then(({ data }: any) => { setMe(data); if (data?.phone) setPhone(data.phone); });
       supabase.from("premium_subscriptions").select("*").eq("user_id", user.id).eq("status", "active").order("expires_at", { ascending: false }).limit(1).maybeSingle().then(({ data }) => setSub(data));
       (supabase as any).from("mpesa_payments").select("*").eq("user_id", user.id).in("status", ["pending", "processing"]).order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }: any) => {
-        if (data) { setPayment(data); startPolling(data.id); }
+        if (!data) return;
+        const ageMs = Date.now() - new Date(data.created_at).getTime();
+        // Ignore stale prompts (older than ~3 minutes) so the overlay can never hang
+        if (ageMs > 3 * 60 * 1000) return;
+        setPayment(data);
+        startPolling(data.id);
       });
     }
-    return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
   }, [user]);
+
+  // Always clear the poll timer when leaving the page
+  useEffect(() => () => { if (pollTimer.current) clearInterval(pollTimer.current); }, []);
 
   const wa = (n?: string | null) => n ? `https://wa.me/${n.replace(/[^\d]/g, "")}?text=${encodeURIComponent("Hi! I have a match on " + (settings?.site_name ?? "HeartLink") + " and would like to connect with them.")}` : "#";
 

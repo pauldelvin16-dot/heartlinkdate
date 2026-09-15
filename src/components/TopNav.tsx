@@ -1,5 +1,5 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Heart, Sparkles, User as UserIcon, Shield, Home, LogOut } from "lucide-react";
+import { Heart, Sparkles, User as UserIcon, Shield, Home, LogOut, ShoppingBag, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ export function TopNav() {
             <NavItem to="/discover" icon={Home} label="Discover" />
             <NavItem to="/matches" icon={Sparkles} label="Matches" />
             <NavItem to="/connect" icon={Heart} label="Connect" />
+            <NavItem to="/shop" icon={ShoppingBag} label="Shop" />
+            <NavItem to="/orders" icon={Package} label="My orders" />
             <NavItem to="/profile" icon={UserIcon} label="Profile" />
             {isAdmin && <NavItem to="/admin" icon={Shield} label="Admin" />}
           </nav>
