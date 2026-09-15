@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
-import { Package, CheckCircle2, Truck, Home, Clock, XCircle } from "lucide-react";
+import { Package, CheckCircle2, Truck, Home, Clock, XCircle, Smartphone, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const FLOW: { key: string; label: string; icon: any }[] = [
   { key: "pending",   label: "Placed",    icon: Clock },
