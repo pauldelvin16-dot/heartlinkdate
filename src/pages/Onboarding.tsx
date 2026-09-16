@@ -105,11 +105,12 @@ const Onboarding = () => {
       preferred_genders: p.preferred_genders, preferred_ethnicities: p.preferred_ethnicities,
       preferred_religions: p.preferred_religions, preferred_countries: p.preferred_countries,
       preferred_relationship_goals: p.preferred_relationship_goals,
-    } as any).eq("id", user.id);
+    } as any, { onConflict: "id" }).select("id, gender, photos").maybeSingle();
     setBusy(false);
     if (error) return toast.error(error.message);
+    if (!saved) return toast.error("We couldn't confirm your profile was saved. Please try again.");
     toast.success("Profile saved!");
-    nav("/discover");
+    nav("/discover", { replace: true });
   }
 
   return (
