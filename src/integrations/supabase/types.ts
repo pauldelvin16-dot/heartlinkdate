@@ -919,6 +919,7 @@ export type Database = {
           interests: string[] | null
           is_active: boolean
           is_premium: boolean
+          is_public_profile: boolean
           is_simulated: boolean
           languages: string[] | null
           latitude: number | null
@@ -970,6 +971,7 @@ export type Database = {
           interests?: string[] | null
           is_active?: boolean
           is_premium?: boolean
+          is_public_profile?: boolean
           is_simulated?: boolean
           languages?: string[] | null
           latitude?: number | null
@@ -1021,6 +1023,7 @@ export type Database = {
           interests?: string[] | null
           is_active?: boolean
           is_premium?: boolean
+          is_public_profile?: boolean
           is_simulated?: boolean
           languages?: string[] | null
           latitude?: number | null
@@ -1079,6 +1082,177 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_keywords: {
+        Row: {
+          clicks: number | null
+          created_at: string
+          ctr: number | null
+          id: string
+          impressions: number | null
+          keyword: string
+          last_synced_at: string | null
+          notes: string | null
+          position: number | null
+          source: string
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          clicks?: number | null
+          created_at?: string
+          ctr?: number | null
+          id?: string
+          impressions?: number | null
+          keyword: string
+          last_synced_at?: string | null
+          notes?: string | null
+          position?: number | null
+          source?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clicks?: number | null
+          created_at?: string
+          ctr?: number | null
+          id?: string
+          impressions?: number | null
+          keyword?: string
+          last_synced_at?: string | null
+          notes?: string | null
+          position?: number | null
+          source?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_pages: {
+        Row: {
+          canonical: string | null
+          changefreq: string
+          content: string | null
+          created_at: string
+          h1: string | null
+          id: string
+          in_sitemap: boolean
+          is_indexable: boolean
+          is_published: boolean
+          keywords: string[]
+          meta_description: string | null
+          priority: number
+          route: string
+          schema_type: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonical?: string | null
+          changefreq?: string
+          content?: string | null
+          created_at?: string
+          h1?: string | null
+          id?: string
+          in_sitemap?: boolean
+          is_indexable?: boolean
+          is_published?: boolean
+          keywords?: string[]
+          meta_description?: string | null
+          priority?: number
+          route: string
+          schema_type?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonical?: string | null
+          changefreq?: string
+          content?: string | null
+          created_at?: string
+          h1?: string | null
+          id?: string
+          in_sitemap?: boolean
+          is_indexable?: boolean
+          is_published?: boolean
+          keywords?: string[]
+          meta_description?: string | null
+          priority?: number
+          route?: string
+          schema_type?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_questions: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          is_published: boolean
+          keywords: string[]
+          question: string
+          route: string
+          sort_order: number
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          keywords?: string[]
+          question: string
+          route?: string
+          sort_order?: number
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          keywords?: string[]
+          question?: string
+          route?: string
+          sort_order?: number
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seo_redirects: {
+        Row: {
+          code: number
+          created_at: string
+          from_path: string
+          id: string
+          is_active: boolean
+          to_path: string
+          updated_at: string
+        }
+        Insert: {
+          code?: number
+          created_at?: string
+          from_path: string
+          id?: string
+          is_active?: boolean
+          to_path: string
+          updated_at?: string
+        }
+        Update: {
+          code?: number
+          created_at?: string
+          from_path?: string
+          id?: string
+          is_active?: boolean
+          to_path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           ads_enabled: boolean
@@ -1090,6 +1264,11 @@ export type Database = {
           enable_otp_login: boolean
           favicon_url: string | null
           google_site_verification: string | null
+          gsc_last_check_detail: string | null
+          gsc_last_checked_at: string | null
+          gsc_property_url: string | null
+          gsc_verification_method: string
+          gsc_verified: boolean
           id: number
           logo_url: string | null
           meta_description: string | null
@@ -1099,6 +1278,8 @@ export type Database = {
           premium_message: string | null
           primary_color: string | null
           site_name: string
+          sitemap_last_submitted_at: string | null
+          sitemap_url: string | null
           tagline: string | null
           updated_at: string
         }
@@ -1112,6 +1293,11 @@ export type Database = {
           enable_otp_login?: boolean
           favicon_url?: string | null
           google_site_verification?: string | null
+          gsc_last_check_detail?: string | null
+          gsc_last_checked_at?: string | null
+          gsc_property_url?: string | null
+          gsc_verification_method?: string
+          gsc_verified?: boolean
           id?: number
           logo_url?: string | null
           meta_description?: string | null
@@ -1121,6 +1307,8 @@ export type Database = {
           premium_message?: string | null
           primary_color?: string | null
           site_name?: string
+          sitemap_last_submitted_at?: string | null
+          sitemap_url?: string | null
           tagline?: string | null
           updated_at?: string
         }
@@ -1134,6 +1322,11 @@ export type Database = {
           enable_otp_login?: boolean
           favicon_url?: string | null
           google_site_verification?: string | null
+          gsc_last_check_detail?: string | null
+          gsc_last_checked_at?: string | null
+          gsc_property_url?: string | null
+          gsc_verification_method?: string
+          gsc_verified?: boolean
           id?: number
           logo_url?: string | null
           meta_description?: string | null
@@ -1143,6 +1336,8 @@ export type Database = {
           premium_message?: string | null
           primary_color?: string | null
           site_name?: string
+          sitemap_last_submitted_at?: string | null
+          sitemap_url?: string | null
           tagline?: string | null
           updated_at?: string
         }
