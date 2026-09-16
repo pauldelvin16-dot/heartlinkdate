@@ -90,7 +90,8 @@ const Onboarding = () => {
     const careerFinal = (p.career === "Other" || p.career === "Matatu Operator")
       ? [p.career, p.career_custom].filter(Boolean).join(" — ")
       : (p.career || null);
-    const { error } = await supabase.from("profiles").update({
+    const { data: saved, error } = await supabase.from("profiles").upsert({
+      id: user.id, is_active: true,
       display_name: p.display_name, bio: p.bio, age: ageNum,
       gender: p.gender, orientation: p.orientation, interested_in: p.interested_in,
       country: p.country, city: p.city, region: p.region || null, ethnicity: p.ethnicity, age_group: p.age_group,
@@ -104,11 +105,12 @@ const Onboarding = () => {
       preferred_genders: p.preferred_genders, preferred_ethnicities: p.preferred_ethnicities,
       preferred_religions: p.preferred_religions, preferred_countries: p.preferred_countries,
       preferred_relationship_goals: p.preferred_relationship_goals,
-    } as any).eq("id", user.id);
+    } as any, { onConflict: "id" }).select("id, gender, photos").maybeSingle();
     setBusy(false);
     if (error) return toast.error(error.message);
+    if (!saved) return toast.error("We couldn't confirm your profile was saved. Please try again.");
     toast.success("Profile saved!");
-    nav("/discover");
+    nav("/discover", { replace: true });
   }
 
   return (
