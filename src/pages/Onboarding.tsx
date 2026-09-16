@@ -90,7 +90,8 @@ const Onboarding = () => {
     const careerFinal = (p.career === "Other" || p.career === "Matatu Operator")
       ? [p.career, p.career_custom].filter(Boolean).join(" — ")
       : (p.career || null);
-    const { error } = await supabase.from("profiles").update({
+    const { data: saved, error } = await supabase.from("profiles").upsert({
+      id: user.id, is_active: true,
       display_name: p.display_name, bio: p.bio, age: ageNum,
       gender: p.gender, orientation: p.orientation, interested_in: p.interested_in,
       country: p.country, city: p.city, region: p.region || null, ethnicity: p.ethnicity, age_group: p.age_group,
