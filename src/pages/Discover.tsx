@@ -168,9 +168,9 @@ const Discover = () => {
           </Button>
           <Sheet>
             <SheetTrigger asChild><Button size="icon" variant="outline"><Filter className="h-4 w-4" /></Button></SheetTrigger>
-            <SheetContent>
-              <SheetHeader><SheetTitle>Premium filters</SheetTitle></SheetHeader>
-              <div className="mt-4 space-y-4">
+            <SheetContent className="flex h-[100dvh] w-[92vw] max-w-md flex-col gap-0 p-4 sm:w-[380px]">
+              <SheetHeader className="shrink-0 pb-2"><SheetTitle>Premium filters</SheetTitle></SheetHeader>
+              <div className="-mx-1 mt-2 flex-1 space-y-4 overflow-y-auto overscroll-contain px-1 pb-6">
                 {!isPremium && (
                   <div className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
                     <Crown className="inline h-4 w-4 text-primary" /> These filters are premium. <button className="underline" onClick={() => nav("/connect")}>Upgrade</button>
