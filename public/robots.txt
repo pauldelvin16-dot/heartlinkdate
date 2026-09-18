@@ -2,5 +2,12 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /onboarding
+Disallow: /chat
+Disallow: /orders
+Disallow: /reset-password
+Disallow: /forgot-password
+
+User-agent: Googlebot
+Allow: /
 
 Sitemap: https://heartlinkdate.lovable.app/sitemap.xml
