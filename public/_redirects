@@ -1,1 +1,9 @@
+# Static files must be served as-is so Google never receives HTML for /sitemap.xml
+/sitemap.xml            /sitemap.xml            200!
+/sitemap-pages.xml      /sitemap-pages.xml      200!
+/sitemap-faq.xml        /sitemap-faq.xml        200!
+/sitemap-index.xml      /sitemap-index.xml      200!
+/robots.txt             /robots.txt             200!
+
+# SPA fallback for everything else
 /*    /index.html   200

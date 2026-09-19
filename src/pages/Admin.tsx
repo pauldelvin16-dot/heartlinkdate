@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { SeoManager } from "@/components/admin/SeoManager";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
   Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
