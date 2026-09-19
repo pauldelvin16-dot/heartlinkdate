@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Copy, ExternalLink, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 
-type Props = { s: any; setS: (v: any) => void; saveSettings: () => Promise<void> | void };
+type Props = { s: any; setS: (v: any) => void; saveSettings: () => any };
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
