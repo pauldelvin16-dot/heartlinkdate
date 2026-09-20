@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { SeoManager } from "@/components/admin/SeoManager";
 import {
   Plus, Trash2, Shield, Crown, Send, Settings, Mail, FileText, Link2, Users, Heart,
   Globe2, MapPin, LogOut, Menu, X, Search, ChevronRight, Home, Smartphone, Package, Inbox, MessageCircle, CheckCircle2,
@@ -935,41 +936,8 @@ const Admin = () => {
 
 
           {tab === "seo" && (
-            <Section title="SEO & Search Console" subtitle="Meta tags, favicon, Google site verification and sitemap.">
-              <Field label="Meta title"><Input value={s.meta_title ?? ""} onChange={e => setS({ ...s, meta_title: e.target.value })} placeholder="HeartLink — Modern Dating" /></Field>
-              <Field label="Meta description"><Textarea rows={2} value={s.meta_description ?? ""} onChange={e => setS({ ...s, meta_description: e.target.value })} /></Field>
-              <Field label="Meta keywords"><Input value={s.meta_keywords ?? ""} onChange={e => setS({ ...s, meta_keywords: e.target.value })} placeholder="dating, love, mature singles" /></Field>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Canonical URL"><Input value={s.canonical_url ?? ""} onChange={e => setS({ ...s, canonical_url: e.target.value })} placeholder="https://yourdomain.com/" /></Field>
-                <Field label="OG / social image URL"><Input value={s.og_image_url ?? ""} onChange={e => setS({ ...s, og_image_url: e.target.value })} /></Field>
-                <Field label="Favicon URL"><Input value={s.favicon_url ?? ""} onChange={e => setS({ ...s, favicon_url: e.target.value })} placeholder="https://…/favicon.png" /></Field>
-                <Field label="Google site verification">
-                  <Input value={s.google_site_verification ?? ""} onChange={e => setS({ ...s, google_site_verification: e.target.value })} placeholder="paste the content value from Google" />
-                </Field>
-              </div>
-              <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
-                <p><strong>Sitemap:</strong> <a className="text-primary hover:underline" href="/sitemap.xml" target="_blank" rel="noreferrer">/sitemap.xml</a> — submit this URL in Google Search Console.</p>
-                <p><strong>Robots:</strong> <a className="text-primary hover:underline" href="/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> — already references your sitemap.</p>
-                <p>To verify with Google: paste the <em>content</em> value from your verification meta tag (the token only, not full HTML) and save. The tag is injected on every page.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={saveSettings} className="gradient-primary text-primary-foreground">Save SEO</Button>
-                <Button variant="outline" onClick={async () => {
-                  await saveSettings();
-                  const base = (s.canonical_url || window.location.origin).replace(/\/$/, "");
-                  const urls = ["/", "/discover", "/matches", "/connect", "/auth", "/install"].map(p =>
-                    `  <url>\n    <loc>${base}${p}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>${p === "/" ? "1.0" : "0.7"}</priority>\n  </url>`
-                  ).join("\n");
-                  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
-                  const blob = new Blob([xml], { type: "application/xml" });
-                  const a = document.createElement("a");
-                  a.href = URL.createObjectURL(blob); a.download = "sitemap.xml"; a.click();
-                  toast.success("Sitemap regenerated — upload to /public/sitemap.xml");
-                }}>Regenerate sitemap.xml</Button>
-                <Button variant="ghost" onClick={() => { document.title = s.meta_title || s.site_name; toast.success("Metadata re-applied"); }}>
-                  Reapply metadata
-                </Button>
-              </div>
+            <Section title="SEO & Search Console" subtitle="Pages, questions, keywords, redirects, sitemap, Google verification and audit.">
+              <SeoManager s={s} setS={setS} saveSettings={saveSettings} />
             </Section>
           )}
         </main>
